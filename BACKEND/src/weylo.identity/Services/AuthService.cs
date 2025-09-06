@@ -3,7 +3,9 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using weylo.shared.Configuration;
 using weylo.identity.Data;
 using weylo.identity.DTOS;
 using weylo.identity.Models;
@@ -13,13 +15,13 @@ namespace weylo.identity.Services.Interfaces
     public class AuthService : IAuthService
     {
         private readonly ApplicationDbContext _context;
-        private readonly IConfiguration _configuration;
+        private readonly JwtSettings _jwtSettings;
         private readonly IEmailService _emailService;
 
-        public AuthService(ApplicationDbContext context, IConfiguration configuration, IEmailService emailService)
+        public AuthService(ApplicationDbContext context, IOptions<JwtSettings> jwtSettings, IEmailService emailService)
         {
             _context = context;
-            _configuration = configuration;
+            _jwtSettings = jwtSettings.Value;
             _emailService = emailService;
         }
 
@@ -85,7 +87,7 @@ namespace weylo.identity.Services.Interfaces
 
             // Save refresh token
             user.RefreshToken = refreshToken;
-            user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+            user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpiryInDays);
             user.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
@@ -93,7 +95,7 @@ namespace weylo.identity.Services.Interfaces
             {
                 AccessToken = accessToken,
                 RefreshToken = refreshToken,
-                ExpiresAt = DateTime.UtcNow.AddMinutes(15)
+                ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpiryInMinutes)
             }, null);
         }
 
@@ -113,7 +115,7 @@ namespace weylo.identity.Services.Interfaces
 
             // Update refresh token
             user.RefreshToken = newRefreshToken;
-            user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+            user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpiryInDays);
             user.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
@@ -121,7 +123,7 @@ namespace weylo.identity.Services.Interfaces
             {
                 AccessToken = newAccessToken,
                 RefreshToken = newRefreshToken,
-                ExpiresAt = DateTime.UtcNow.AddMinutes(15)
+                ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpiryInMinutes)
             }, null);
         }
 
@@ -203,8 +205,7 @@ namespace weylo.identity.Services.Interfaces
         private string GenerateJwtToken(User user)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(
-    _configuration["JwtSettings:Key"]
+            var key = Encoding.ASCII.GetBytes(_jwtSettings.Key
     ?? throw new InvalidOperationException("JWT Key not configured")
 );
 
@@ -217,9 +218,9 @@ namespace weylo.identity.Services.Interfaces
                     new Claim(ClaimTypes.Email, user.Email),
                     new Claim(ClaimTypes.Name, user.Username)
                 }),
-                Expires = DateTime.UtcNow.AddMinutes(15),
-                Issuer = _configuration["JwtSettings:Issuer"],
-                Audience = _configuration["JwtSettings:Audience"],
+                Expires = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpiryInMinutes),
+                Issuer = _jwtSettings.Issuer,
+                Audience = _jwtSettings.Audience,
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
 

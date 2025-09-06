@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace TripPlanner.Shared.Configuration
+namespace weylo.shared.Configuration
 {
     public class JwtSettings
     {

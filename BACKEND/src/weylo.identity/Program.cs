@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using weylo.shared.Configuration;
 using weylo.identity.Data;
 using weylo.identity.Services;
 using weylo.identity.Services.Interfaces;
@@ -15,7 +16,7 @@ builder.Services.AddEndpointsApiExplorer();
 // Swagger + JWT
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Weylo API", Version = "v1",  Description = "Identity and authentication API for Weylo" });
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Weylo API", Version = "v1", Description = "Identity and authentication API for Weylo" });
 
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
@@ -48,12 +49,17 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("PSQL")));
 
 // JWT config
-var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var key = Encoding.ASCII.GetBytes(jwtSettings["Key"] ?? throw new InvalidOperationException("JWT Key not configured"));
-Console.WriteLine($"JWT Issuer: {jwtSettings["Issuer"]}");
-Console.WriteLine($"JWT Audience: {jwtSettings["Audience"]}");
-Console.WriteLine($"JWT Key: {key.Length} characters long");
+var jwtSettingsSection = builder.Configuration.GetSection("JwtSettings");
+builder.Services.Configure<JwtSettings>(jwtSettingsSection);
 
+var jwtSettings = jwtSettingsSection.Get<JwtSettings>()
+    ?? throw new InvalidOperationException("JWT settings not configured");
+var key = Encoding.ASCII.GetBytes(jwtSettings.Key);
+Console.WriteLine($"JWT Issuer: {jwtSettings.Issuer}");
+Console.WriteLine($"JWT Audience: {jwtSettings.Audience}");
+Console.WriteLine($"JWT Key: {key.Length} bytes long");
+Console.WriteLine($"Access token expiry: {jwtSettings.AccessTokenExpiryInMinutes} minutes");
+Console.WriteLine($"Refresh token expiry: {jwtSettings.RefreshTokenExpiryInDays} days");
 
 builder.Services.AddAuthentication(options =>
 {
@@ -69,9 +75,9 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(key),
         ValidateIssuer = true,
-        ValidIssuer = jwtSettings["Issuer"],
+        ValidIssuer = jwtSettings.Issuer,
         ValidateAudience = true,
-        ValidAudience = jwtSettings["Audience"],
+        ValidAudience = jwtSettings.Audience,
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero
     };

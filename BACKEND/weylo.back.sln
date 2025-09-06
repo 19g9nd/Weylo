@@ -11,8 +11,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "weylo.shared", "src\weylo.s
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "weylo.user.api", "src\weylo.user.api\weylo.user.api.csproj", "{37E2105B-0100-47A8-AA77-570C12B54E39}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "weylo.infrastructure", "src\weylo.infrastructure\weylo.infrastructure.csproj", "{D55A1E36-DB6E-44FE-98C8-C4B057987A20}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

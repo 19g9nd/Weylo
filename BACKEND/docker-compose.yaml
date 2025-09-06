@@ -4,7 +4,7 @@ services:
   identity:
     image: identity_api
     build:
-      context: ./src/weylo.identity/
+      context: .
       dockerfile: app.Dockerfile
     container_name: identity_api
     environment:
