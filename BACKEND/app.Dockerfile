@@ -9,7 +9,7 @@ WORKDIR /src
 COPY ["src/weylo.identity/weylo.identity.csproj", "src/weylo.identity/"]
 COPY ["src/weylo.shared/weylo.shared.csproj", "src/weylo.shared/"]
 
-# Restore dependecies
+# Restore dependencies
 RUN dotnet restore "src/weylo.identity/weylo.identity.csproj"
 
 # Copy code

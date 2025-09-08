@@ -13,5 +13,6 @@ namespace weylo.identity.Services.Interfaces
         Task<(bool success, string? error)> ForgotPasswordAsync(string email);
         Task<(bool success, string? error)> ResetPasswordAsync(ResetPasswordDto resetPasswordDto);
         Task<(bool success, string? error)> VerifyEmailAsync(string token);
+        Task<(bool success, string? error)> ResendVerificationEmailAsync(string email);
     }
 }

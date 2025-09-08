@@ -201,6 +201,25 @@ namespace weylo.identity.Services.Interfaces
 
             return (true, null);
         }
+        
+        public async Task<(bool success, string? error)> ResendVerificationEmailAsync(string email)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            if (user == null)
+                return (false, "User not found.");
+
+            if (user.IsEmailVerified)
+                return (false, "Email already confirmed.");
+
+            // Генерируем новый токен
+            user.EmailVerificationToken = GenerateRandomToken();
+            user.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            await _emailService.SendVerificationEmailAsync(user.Email, user.EmailVerificationToken);
+
+            return (true, null);
+        }
 
         private string GenerateJwtToken(User user)
         {
