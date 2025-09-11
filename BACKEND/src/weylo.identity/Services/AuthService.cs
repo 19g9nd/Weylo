@@ -140,11 +140,6 @@ namespace weylo.identity.Services.Interfaces
             return true;
         }
 
-        public async Task<User?> GetUserByIdAsync(int userId)
-        {
-            return await _context.Users.FindAsync(userId);
-        }
-
         public async Task<(bool success, string? error)> ForgotPasswordAsync(string email)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);

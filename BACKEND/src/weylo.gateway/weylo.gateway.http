@@ -1,0 +1,6 @@
+@weylo.gateway_HostAddress = http://localhost:5276
+
+GET {{weylo.gateway_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
