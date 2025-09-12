@@ -113,6 +113,20 @@
             ]
         },
         {
+            "DownstreamPathTemplate": "/api/Auth/change-password",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "identity_api",
+                    "Port": 80
+                }
+            ],
+            "UpstreamPathTemplate": "/api/auth/change-password",
+            "UpstreamHttpMethod": [
+                "POST"
+            ]
+        },
+        {
             "DownstreamPathTemplate": "/api/User/me",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [

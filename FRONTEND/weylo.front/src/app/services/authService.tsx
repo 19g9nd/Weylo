@@ -2,6 +2,7 @@ import {
   LoginDto,
   RegisterDto,
   ResetPasswordDto,
+  ChangePasswordDto,
   AuthResponseDto,
   User,
   ApiResponse,
@@ -78,6 +79,10 @@ class AuthService {
 
   async resetPassword(data: ResetPasswordDto): Promise<ApiResponse<void>> {
     return httpClient.post<void>("/api/auth/reset-password", data);
+  }
+
+  async changePassword(data: ChangePasswordDto): Promise<ApiResponse<void>> {
+    return httpClient.post<void>("/api/auth/change-password", data);
   }
 
   async verifyEmail(token: string): Promise<ApiResponse<void>> {

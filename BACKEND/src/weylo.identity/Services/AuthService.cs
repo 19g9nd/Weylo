@@ -9,6 +9,7 @@ using weylo.shared.Configuration;
 using weylo.identity.Data;
 using weylo.identity.DTOS;
 using weylo.identity.Models;
+using weylo.shared.Utils;
 
 namespace weylo.identity.Services.Interfaces
 {
@@ -41,7 +42,7 @@ namespace weylo.identity.Services.Interfaces
             {
                 Email = registerDto.Email,
                 Username = registerDto.Username,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password),
+                PasswordHash = PasswordHelper.HashPassword(registerDto.Password),
                 IsEmailVerified = false,
                 EmailVerificationToken = GenerateRandomToken(),
                 CreatedAt = DateTime.UtcNow,
@@ -76,7 +77,7 @@ namespace weylo.identity.Services.Interfaces
             var user = await _context.Users
                 .FirstOrDefaultAsync(u => u.Email == loginDto.Email);
 
-            if (user == null || !BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash))
+            if (user == null || !PasswordHelper.VerifyPassword(loginDto.Password, user.PasswordHash))
             {
                 return (null, "Invalid email or password");
             }
@@ -170,7 +171,7 @@ namespace weylo.identity.Services.Interfaces
                 return (false, "Invalid or expired reset token");
             }
 
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(resetPasswordDto.NewPassword);
+            user.PasswordHash = PasswordHelper.HashPassword(resetPasswordDto.NewPassword);
             user.PasswordResetToken = null;
             user.PasswordResetTokenExpiry = null;
             user.UpdatedAt = DateTime.UtcNow;
@@ -178,7 +179,30 @@ namespace weylo.identity.Services.Interfaces
 
             return (true, null);
         }
+        public async Task<(bool success, string? error)> ChangePasswordAsync(int userId, ChangePasswordDto changePasswordDto)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+                return (false, "User not found");
 
+            // Verify current password
+            if (!PasswordHelper.VerifyPassword(changePasswordDto.CurrentPassword, user.PasswordHash))
+                return (false, "Current password is incorrect");
+
+            // Hash new password
+            user.PasswordHash = PasswordHelper.HashPassword(changePasswordDto.NewPassword);
+            user.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+                return (true, null);
+            }
+            catch
+            {
+                return (false, "Failed to change password");
+            }
+        }
         public async Task<(bool success, string? error)> VerifyEmailAsync(string token)
         {
             var user = await _context.Users
@@ -196,7 +220,7 @@ namespace weylo.identity.Services.Interfaces
 
             return (true, null);
         }
-        
+
         public async Task<(bool success, string? error)> ResendVerificationEmailAsync(string email)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);

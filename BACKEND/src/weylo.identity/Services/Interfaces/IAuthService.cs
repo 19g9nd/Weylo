@@ -1,5 +1,4 @@
 using weylo.identity.DTOS;
-using weylo.identity.Models;
 
 namespace weylo.identity.Services.Interfaces
 {
@@ -11,6 +10,7 @@ namespace weylo.identity.Services.Interfaces
         Task<bool> LogoutAsync(int userId);
         Task<(bool success, string? error)> ForgotPasswordAsync(string email);
         Task<(bool success, string? error)> ResetPasswordAsync(ResetPasswordDto resetPasswordDto);
+         Task<(bool success, string? error)> ChangePasswordAsync(int userId, ChangePasswordDto changePasswordDto);
         Task<(bool success, string? error)> VerifyEmailAsync(string token);
         Task<(bool success, string? error)> ResendVerificationEmailAsync(string email);
     }

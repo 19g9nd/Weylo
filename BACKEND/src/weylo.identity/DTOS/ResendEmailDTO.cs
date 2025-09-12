@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace weylo.identity.DTOS
 {
-    public class ResendEmailDTO
+    public class ResendEmailDto
     {
         [Required]
         [EmailAddress]

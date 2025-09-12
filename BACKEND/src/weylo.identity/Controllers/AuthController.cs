@@ -257,6 +257,54 @@ namespace weylo.identity.Controllers
 
             return Ok(new { message = "Password has been reset successfully" });
         }
+        
+        /// <summary>
+        /// Change user password
+        /// </summary>
+        /// <param name="changePasswordDto">Password change data</param>
+        /// <returns>Password change result</returns>
+        /// <remarks>
+        /// Example request:
+        /// 
+        ///     POST /api/auth/change-password
+        ///     {
+        ///         "currentPassword": "CurrentPassword123!",
+        ///         "newPassword": "NewSecurePassword123!",
+        ///         "confirmPassword": "NewSecurePassword123!"
+        ///     }
+        /// 
+        /// </remarks>
+        /// <response code="200">Password changed successfully</response>
+        /// <response code="400">Invalid request data or current password incorrect</response>
+        /// <response code="401">User not authorized</response>
+        [HttpPost("change-password")]
+        [Authorize]
+        [ProducesResponseType(typeof(object), 200)]
+        [ProducesResponseType(typeof(object), 400)]
+        [ProducesResponseType(typeof(object), 401)]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto changePasswordDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            // Get user ID from JWT token - use the same claim type as in token generation
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+            {
+                return Unauthorized(new { error = "Invalid user token" });
+            }
+
+            var (success, error) = await _authService.ChangePasswordAsync(userId, changePasswordDto);
+
+            if (!success)
+            {
+                return BadRequest(new { error = error ?? "Failed to change password" });
+            }
+
+            return Ok(new { message = "Password changed successfully" });
+        }
 
         /// <summary>
         /// Email address verification
@@ -304,7 +352,7 @@ namespace weylo.identity.Controllers
         [HttpPost("resend-verification-email")]
         [ProducesResponseType(typeof(object), 200)]
         [ProducesResponseType(typeof(object), 400)]
-        public async Task<IActionResult> ResendVerificationEmail([FromBody] ResendEmailDTO request)
+        public async Task<IActionResult> ResendVerificationEmail([FromBody] ResendEmailDto request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);

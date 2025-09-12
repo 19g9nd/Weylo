@@ -1,8 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using weylo.identity.DTOS;
 using weylo.user.api.Services.Interfaces;
+using weylo.user.DTOS;
 
 namespace weylo.user.api.Controllers
 {

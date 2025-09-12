@@ -6,9 +6,8 @@ import { useAuth } from "../context/AuthContext";
 import Navigation from "../components/ui/navigation";
 
 export default function DashboardPage() {
-  const { user, logout, isAuthenticated, isLoading, resendVerificationEmail } =
+  const { user, isAuthenticated, isLoading, resendVerificationEmail } =
     useAuth();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isResendingEmail, setIsResendingEmail] = useState(false);
   const [verificationMessage, setVerificationMessage] = useState("");
   const router = useRouter();
@@ -18,17 +17,6 @@ export default function DashboardPage() {
       router.push("/login");
     }
   }, [isAuthenticated, isLoading, router]);
-
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
-    try {
-      logout();
-      router.push("/login");
-    } catch (error) {
-      console.error("Logout error:", error);
-      setIsLoggingOut(false);
-    }
-  };
 
   const handleResendVerification = async () => {
     if (!user?.email) return;
@@ -236,7 +224,7 @@ export default function DashboardPage() {
                 </h3>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <button
-                    onClick={() => router.push("/profile")}
+                    onClick={() => router.push("/settings")}
                     className="relative block w-full rounded-lg border-2 border-dashed border-gray-300 p-6 text-center hover:border-yellow focus:outline-none focus:ring-2 focus:ring-yellow transition-colors"
                   >
                     <svg
@@ -292,7 +280,7 @@ export default function DashboardPage() {
                   </button>
 
                   <button
-                    onClick={() => router.push("/help")}
+                    onClick={() => router.push("/contact")}
                     className="relative block w-full rounded-lg border-2 border-dashed border-gray-300 p-6 text-center hover:border-yellow focus:outline-none focus:ring-2 focus:ring-yellow transition-colors"
                   >
                     <svg

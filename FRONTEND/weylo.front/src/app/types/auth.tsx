@@ -16,6 +16,12 @@ export interface ResetPasswordDto {
   confirmNewPassword: string;
 }
 
+export interface ChangePasswordDto {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
 export interface AuthResponseDto {
   accessToken: string;
   refreshToken: string;
@@ -52,6 +58,7 @@ export interface AuthContextType extends AuthState {
   logout: () => void;
   forgotPassword: (email: string) => Promise<ApiResponse<void>>;
   resetPassword: (data: ResetPasswordDto) => Promise<ApiResponse<void>>;
+  changePassword: (data: ChangePasswordDto)  => Promise<ApiResponse<void>>;
   verifyEmail: (token: string) => Promise<ApiResponse<void>>;
   resendVerificationEmail: (email: string) => Promise<ApiResponse<void>>;
   refreshToken: () => Promise<boolean>;

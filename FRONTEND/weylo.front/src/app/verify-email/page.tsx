@@ -17,7 +17,7 @@ export default function VerifyEmailPage() {
   const email = searchParams.get("email");
   const token = searchParams.get("token");
 
-  const { verifyEmail, resendVerificationEmail, user, isAuthenticated } =
+  const { verifyEmail, resendVerificationEmail, isAuthenticated } =
     useAuth();
 
   useEffect(() => {

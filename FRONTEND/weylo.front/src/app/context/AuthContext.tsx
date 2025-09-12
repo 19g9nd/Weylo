@@ -12,6 +12,7 @@ import {
   AuthContextType,
   LoginDto,
   RegisterDto,
+  ChangePasswordDto,
   ResetPasswordDto,
   User,
 } from "../types/auth";
@@ -140,6 +141,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     dispatch({ type: "LOGOUT" });
   };
 
+  const changePassword = async (data: ChangePasswordDto) => {
+    dispatch({ type: "SET_LOADING", payload: true });
+
+    try {
+      return await authService.changePassword(data);
+    } finally {
+      dispatch({ type: "SET_LOADING", payload: false });
+    }
+  };
+
   const forgotPassword = async (email: string) => {
     return authService.forgotPassword(email);
   };
@@ -183,6 +194,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     login,
     register,
     logout,
+    changePassword,
     forgotPassword,
     resetPassword,
     verifyEmail,
