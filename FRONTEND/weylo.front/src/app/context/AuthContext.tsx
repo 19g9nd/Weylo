@@ -15,6 +15,7 @@ import {
   ChangePasswordDto,
   ResetPasswordDto,
   User,
+  ApiResponse,
 } from "../types/auth";
 import authService from "../services/authService";
 
@@ -73,15 +74,43 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const initAuth = async () => {
       const token = authService.getStoredToken();
 
-      if (token && !authService.isTokenExpired()) {
-        dispatch({ type: "SET_TOKEN", payload: token });
-        const userResponse = await authService.getCurrentUser();
-        if (userResponse.success && userResponse.data) {
-          dispatch({ type: "SET_USER", payload: userResponse.data });
+      if (token) {
+        if (!authService.isTokenExpired()) {
+          // Token is valid, set it and get user data
+          dispatch({ type: "SET_TOKEN", payload: token });
+          const userResponse = await authService.getCurrentUser();
+          if (userResponse.success && userResponse.data) {
+            dispatch({ type: "SET_USER", payload: userResponse.data });
+          } else {
+            await authService.logout();
+            dispatch({ type: "LOGOUT" });
+          }
         } else {
-          await authService.logout();
-          dispatch({ type: "LOGOUT" });
+          // Token expired, try to refresh
+          const refreshResponse = await authService.refreshToken();
+          if (refreshResponse.success) {
+            // Refresh successful, get user data
+            dispatch({
+              type: "SET_TOKEN",
+              payload: authService.getStoredToken(),
+            });
+            const userResponse = await authService.getCurrentUser();
+            if (userResponse.success && userResponse.data) {
+              dispatch({ type: "SET_USER", payload: userResponse.data });
+            } else {
+              await authService.logout();
+              dispatch({ type: "LOGOUT" });
+            }
+          } else {
+            // Refresh failed, clean everything
+            await authService.logout();
+            dispatch({ type: "LOGOUT" });
+          }
         }
+      } else {
+        // No token at all, make sure everything is clean
+        await authService.logout();
+        dispatch({ type: "LOGOUT" });
       }
 
       dispatch({ type: "SET_LOADING", payload: false });
@@ -151,6 +180,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const changeUsername = async (
+    newUsername: string
+  ): Promise<ApiResponse<{ message: string }>> => {
+    dispatch({ type: "SET_LOADING", payload: true });
+
+    try {
+      const response = await authService.changeUsername(newUsername);
+
+      if (response.success) {
+        // Refresh user data to get updated username
+        const userResponse = await authService.getCurrentUser();
+        if (userResponse.success && userResponse.data) {
+          dispatch({ type: "SET_USER", payload: userResponse.data });
+        }
+      }
+
+      return response;
+    } finally {
+      dispatch({ type: "SET_LOADING", payload: false });
+    }
+  };
+
   const forgotPassword = async (email: string) => {
     return authService.forgotPassword(email);
   };
@@ -195,6 +246,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     register,
     logout,
     changePassword,
+    changeUsername,
     forgotPassword,
     resetPassword,
     verifyEmail,

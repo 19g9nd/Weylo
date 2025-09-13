@@ -49,20 +49,32 @@ class HttpClient {
       if (response.status === 401 && this.token) {
         const refreshed = await this.refreshToken();
         if (refreshed) {
-          // Retry with new token
-          const newHeaders: Record<string, string> = { ...headers };
+          // Retry with new token - Create completely new headers object
+          const retryHeaders: Record<string, string> = {
+            "Content-Type": "application/json",
+            ...(options.headers as Record<string, string>),
+          };
+
+          // Add the NEW token to authorization header
           if (this.token) {
-            newHeaders.Authorization = `Bearer ${this.token}`;
+            retryHeaders.Authorization = `Bearer ${this.token}`;
           }
+
           const retryResponse = await fetch(url, {
             ...options,
-            headers: newHeaders,
+            headers: retryHeaders,
           });
           return this.handleResponse<T>(retryResponse);
         } else {
-          // Refresh didnt work clean tokens
+          // Refresh didn't work, clean tokens and redirect
           this.clearTokens();
-          window.location.href = "/login";
+          if (typeof window !== "undefined") {
+            window.location.href = "/login";
+          }
+          return {
+            success: false,
+            error: "Authentication failed",
+          };
         }
       }
 
@@ -120,8 +132,15 @@ class HttpClient {
 
       if (response.ok) {
         const data = await response.json();
+        // Update both the instance token AND localStorage
         this.setToken(data.accessToken);
-        localStorage.setItem("refreshToken", data.refreshToken);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("refreshToken", data.refreshToken);
+          // Also update expiration time if provided
+          if (data.expiresAt) {
+            localStorage.setItem("tokenExpiresAt", data.expiresAt);
+          }
+        }
         return true;
       }
     } catch (error) {
@@ -136,6 +155,7 @@ class HttpClient {
     if (typeof window !== "undefined") {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
+      localStorage.removeItem("tokenExpiresAt");
     }
   }
 
@@ -154,6 +174,13 @@ class HttpClient {
   async put<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: "PUT",
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  async patch<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: "PATCH",
       body: data ? JSON.stringify(data) : undefined,
     });
   }

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using weylo.user.api.DTOS;
 using weylo.user.api.Services.Interfaces;
 using weylo.user.DTOS;
 
@@ -17,7 +18,7 @@ namespace weylo.user.api.Controllers
             _userService = userService;
             _logger = logger;
         }
-        
+
         /// <summary>
         /// Get information about the current authorized user
         /// </summary>
@@ -56,6 +57,25 @@ namespace weylo.user.api.Controllers
                     CreatedAt = user.CreatedAt
                 }
             });
+        }
+
+        [HttpPatch("change-username")]
+        public async Task<IActionResult> ChangeUsername([FromBody] ChangeUsernameDto changeRequest)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+            {
+                return Unauthorized();
+            }
+
+            var result = await _userService.ChangeUsernameAsync(userId, changeRequest.NewUsername);
+
+            if (!result)
+            {
+                return BadRequest(new { error = "Username change failed. It might be already taken." });
+            }
+
+            return Ok(new { message = "Username changed successfully" });
         }
     }
 }

@@ -139,6 +139,20 @@
             "UpstreamHttpMethod": [
                 "GET"
             ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/User/change-username",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/user/change-username",
+            "UpstreamHttpMethod": [
+                "PATCH"
+            ]
         }
     ],
     "GlobalConfiguration": {

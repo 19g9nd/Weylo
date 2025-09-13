@@ -6,6 +6,7 @@ import {
   AuthResponseDto,
   User,
   ApiResponse,
+  ChangeUsernameDto,
 } from "../types/auth";
 import httpClient from "./httpClient";
 
@@ -99,6 +100,19 @@ class AuthService {
 
   async getCurrentUser(): Promise<ApiResponse<User>> {
     return httpClient.get<User>("/api/user/me");
+  }
+
+  async changeUsername(
+    newUsername: string
+  ): Promise<ApiResponse<{ message: string }>> {
+    const changeUsernameData: ChangeUsernameDto = {
+      newUsername: newUsername.trim(), // Trim whitespace
+    };
+
+    return httpClient.patch<{ message: string }>(
+      "/api/user/change-username",
+      changeUsernameData
+    );
   }
 
   private saveTokens(authResponse: AuthResponseDto): void {
