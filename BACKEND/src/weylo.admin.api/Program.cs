@@ -1,16 +1,76 @@
+
+// // Register app services
+// builder.Services.AddScoped<IAdminService, AdminService>();
+// builder.Services.AddScoped<IDataSeeder, DataSeeder>();
+
+// // CORS
+// builder.Services.AddCors(options =>
+// {
+//     options.AddPolicy("AllowAll",
+//         policy =>
+//         {
+//             policy.AllowAnyOrigin()
+//                   .AllowAnyMethod()
+//                   .AllowAnyHeader();
+//         });
+// });
+
+// // Build app
+// var app = builder.Build();
+
+// // Database initialization + seeding
+// using (var scope = app.Services.CreateScope())
+// {
+//     var services = scope.ServiceProvider;
+//     var logger = services.GetRequiredService<ILogger<Program>>();
+
+//     try
+//     {
+//         var context = services.GetRequiredService<AdminDbContext>();
+//         await context.Database.CanConnectAsync();
+//         logger.LogInformation("Connected to Admin database");
+//         var seeder = services.GetRequiredService<IDataSeeder>();
+//         await seeder.SeedAsync();
+//     }
+//     catch (Exception ex)
+//     {
+//         logger.LogError(ex, "Admin API database initialization failed.");
+//         throw;
+//     }
+// }
+
+// // Middleware
+// app.UseSwagger();
+// app.UseSwaggerUI(c =>
+// {
+//     c.SwaggerEndpoint("/swagger/v1/swagger.json", "Weylo Admin API v1");
+//     c.RoutePrefix = "swagger";
+//     c.DisplayRequestDuration();
+// });
+
+// app.UseHttpsRedirection();
+// app.UseCors("AllowAll");
+
+// app.UseAuthentication();
+// app.UseAuthorization();
+
+// app.MapControllers();
+
+// app.Run();
+
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using weylo.shared.Configuration;
-using weylo.identity.Data;
-using weylo.identity.Services;
-using weylo.identity.Services.Interfaces;
 using System.Reflection;
 using weylo.shared.Services.Interfaces;
 using weylo.shared.Services;
 using weylo.shared.Data;
+using weylo.admin.api.Data;
+using weylo.admin.api.Services.Interfaces;
+using weylo.admin.api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,9 +82,9 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "Weylo API",
+        Title = "Weylo Admin API",
         Version = "v1",
-        Description = "Identity and authentication API for Weylo"
+        Description = "API for Weylo administration tasks",
     });
 
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -62,7 +122,7 @@ builder.Services.AddSwaggerGen(c =>
     var possibleXmlFiles = new[]
     {
         $"{assemblyName}.xml",
-        "weylo.identity.xml",
+        "weylo.admin.api.xml",
         $"{assembly.GetName().Name}.xml"
     };
 
@@ -108,8 +168,22 @@ builder.Services.AddSwaggerGen(c =>
     c.DescribeAllParametersInCamelCase();
 });
 
+// // Authorization policies
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy =>
+        policy.RequireRole("Admin"));
+
+    options.AddPolicy("SuperAdminOnly", policy =>
+        policy.RequireRole("SuperAdmin"));
+
+    options.AddPolicy("AdminOrSuperAdmin", policy =>
+        policy.RequireAssertion(context =>
+            context.User.IsInRole("Admin") || context.User.IsInRole("SuperAdmin")));
+});
+
 // Database (PostgreSQL)
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
+builder.Services.AddDbContext<AdminDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("PSQL")));
 
 // JWT config
@@ -119,6 +193,7 @@ builder.Services.Configure<JwtSettings>(jwtSettingsSection);
 var jwtSettings = jwtSettingsSection.Get<JwtSettings>()
     ?? throw new InvalidOperationException("JWT settings not configured");
 var key = Encoding.ASCII.GetBytes(jwtSettings.Key);
+// Регистрируем JwtSettings и JwtService (как в Admin API)
 builder.Services.AddSingleton(jwtSettings);
 builder.Services.AddScoped<IJwtService, JwtService>();
 Console.WriteLine($"JWT Issuer: {jwtSettings.Issuer}");
@@ -145,15 +220,17 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidAudience = jwtSettings.Audience,
         ValidateLifetime = true,
-        ClockSkew = TimeSpan.Zero,
+        ClockSkew = TimeSpan.Zero
     };
 });
 
 // Register services
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
+builder.Services.AddScoped<IDataSeeder, DataSeeder>();
+
 builder.Services.AddScoped<BaseDbContext>(provider =>
-    provider.GetRequiredService<ApplicationDbContext>());
+    provider.GetRequiredService<AdminDbContext>());
+
 // CORS
 builder.Services.AddCors(options =>
 {
@@ -172,15 +249,16 @@ using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     var logger = services.GetRequiredService<ILogger<Program>>();
+    var seeder = services.GetRequiredService<IDataSeeder>();
 
     try
     {
-        var context = services.GetRequiredService<ApplicationDbContext>();
+        var context = services.GetRequiredService<AdminDbContext>();
 
         await context.Database.CanConnectAsync();
         logger.LogInformation("Successfully connected to database");
+        await seeder.SeedAsync();
 
-        await context.Database.EnsureCreatedAsync();
         logger.LogInformation("Database initialized successfully");
     }
     catch (Exception ex)
@@ -192,7 +270,7 @@ using (var scope = app.Services.CreateScope())
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Weylo API v1");
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Weylo Admin API v1");
     c.RoutePrefix = "swagger";
     c.DisplayRequestDuration();
     c.EnableDeepLinking();

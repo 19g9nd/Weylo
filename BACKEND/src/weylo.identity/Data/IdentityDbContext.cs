@@ -1,29 +1,18 @@
 using Microsoft.EntityFrameworkCore;
-using weylo.identity.Models;
+using weylo.shared.Data;
+using weylo.shared.Models;
 
 namespace weylo.identity.Data
 {
-    public class ApplicationDbContext : DbContext
+    public class ApplicationDbContext : BaseDbContext
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-           : base(options)
+            : base(options)
         {
         }
-        
-        public DbSet<User> Users { get; set; }
 
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        protected override void ConfigureAdditionalIndexes(ModelBuilder modelBuilder)
         {
-            base.OnModelCreating(modelBuilder);
-
-            modelBuilder.Entity<User>(entity =>
-            {
-                entity.HasIndex(e => e.Email).IsUnique();
-                entity.HasIndex(e => e.Username).IsUnique();
-                entity.HasIndex(e => e.RefreshToken);
-                entity.HasIndex(e => e.EmailVerificationToken);
-                entity.HasIndex(e => e.PasswordResetToken);
-            });
         }
     }
 }

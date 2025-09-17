@@ -111,7 +111,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Test DB connection + migrate/init (optional)
+// Test DB connection
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -122,9 +122,6 @@ using (var scope = app.Services.CreateScope())
         var context = services.GetRequiredService<UserDbContext>();
         await context.Database.CanConnectAsync();
         logger.LogInformation("Connected to User database");
-
-        // Optional: Ensure DB created/migrated
-        await context.Database.EnsureCreatedAsync();
     }
     catch (Exception ex)
     {

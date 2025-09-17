@@ -27,7 +27,6 @@ services:
     ports:
       - "5001:81"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:81  
     depends_on:
       - postgres 
@@ -37,15 +36,32 @@ services:
     env_file:
       - .env  
     restart: always
+  admin:
+    build:
+      context: .
+      dockerfile: admin.Dockerfile  
+    container_name: admin_api 
+    ports:
+      - "5002:82"
+    environment:
+      - ASPNETCORE_URLS=http://+:82 
+    depends_on:
+      - postgres 
+      - identity  
+    networks:
+      - myappnetwork 
+    env_file:
+      - .env  
+    restart: always
+
   gateway:
     build:
       context: .
       dockerfile: gateway.Dockerfile
     container_name: gateway_api
     ports:
-      - "4000:82"
+      - "4000:83"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:82
     depends_on:
       - identity
@@ -53,6 +69,7 @@ services:
     networks:
       - myappnetwork
     restart: always
+
 
   postgres:
     image: postgres:latest

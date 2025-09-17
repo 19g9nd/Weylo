@@ -8,8 +8,8 @@ using Microsoft.IdentityModel.Tokens;
 using weylo.shared.Configuration;
 using weylo.identity.Data;
 using weylo.identity.DTOS;
-using weylo.identity.Models;
 using weylo.shared.Utils;
+using weylo.shared.Models;
 
 namespace weylo.identity.Services.Interfaces
 {
@@ -247,14 +247,15 @@ namespace weylo.identity.Services.Interfaces
     ?? throw new InvalidOperationException("JWT Key not configured")
 );
 
-
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new[]
                 {
                     new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                     new Claim(ClaimTypes.Email, user.Email),
-                    new Claim(ClaimTypes.Name, user.Username)
+                    new Claim("sub", user.Id.ToString()),
+                    new Claim(ClaimTypes.Name, user.Username),
+                    new Claim(ClaimTypes.Role, user.Role ?? "User"),
                 }),
                 Expires = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpiryInMinutes),
                 Issuer = _jwtSettings.Issuer,
