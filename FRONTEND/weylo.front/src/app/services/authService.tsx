@@ -49,6 +49,14 @@ class AuthService {
   }
 
   async refreshToken(): Promise<ApiResponse<AuthResponseDto>> {
+    // Server side check
+    if (typeof window === "undefined") {
+      return {
+        success: false,
+        error: "Cannot refresh token on server",
+      };
+    }
+
     const refreshToken = localStorage.getItem("refreshToken");
 
     if (!refreshToken) {
@@ -60,9 +68,7 @@ class AuthService {
 
     const response = await httpClient.post<AuthResponseDto>(
       "/api/auth/refresh",
-      {
-        refreshToken,
-      }
+      { refreshToken }
     );
 
     if (response.success && response.data) {
