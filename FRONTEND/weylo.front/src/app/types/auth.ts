@@ -1,3 +1,5 @@
+import { ApiResponse, User } from "./shared";
+
 export interface RegisterDto {
   email: string;
   username: string;
@@ -30,22 +32,6 @@ export interface AuthResponseDto {
   accessToken: string;
   refreshToken: string;
   expiresAt: string; // ISO date string
-}
-
-export interface User {
-  id: number;
-  email: string;
-  username: string;
-  isEmailVerified: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// API response wrapper
-export interface ApiResponse<T> {
-  data?: T;
-  error?: string;
-  success: boolean;
 }
 
 // Auth context types

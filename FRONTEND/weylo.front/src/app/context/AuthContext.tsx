@@ -14,10 +14,9 @@ import {
   RegisterDto,
   ChangePasswordDto,
   ResetPasswordDto,
-  User,
-  ApiResponse,
 } from "../types/auth";
 import authService from "../services/authService";
+import { ApiResponse, User } from "../types/shared";
 
 // Auth reducer
 type AuthAction =
@@ -133,6 +132,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             type: "SET_TOKEN",
             payload: authService.getStoredToken(),
           });
+          console.log("Decoded user:", userResponse.data);
         }
       }
 

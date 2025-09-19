@@ -4,10 +4,9 @@ import {
   ResetPasswordDto,
   ChangePasswordDto,
   AuthResponseDto,
-  User,
-  ApiResponse,
   ChangeUsernameDto,
 } from "../types/auth";
+import { ApiResponse, User } from "../types/shared";
 import httpClient from "./httpClient";
 
 class AuthService {

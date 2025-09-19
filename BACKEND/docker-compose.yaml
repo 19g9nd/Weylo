@@ -62,7 +62,7 @@ services:
     ports:
       - "4000:83"
     environment:
-      - ASPNETCORE_URLS=http://+:82
+      - ASPNETCORE_URLS=http://+:83
     depends_on:
       - identity
       - user

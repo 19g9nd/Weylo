@@ -1,4 +1,4 @@
-import { ApiResponse } from "../types/auth";
+import { ApiResponse } from "../types/shared";
 
 class HttpClient {
   private baseURL: string;

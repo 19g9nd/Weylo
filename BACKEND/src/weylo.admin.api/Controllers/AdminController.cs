@@ -146,9 +146,5 @@ namespace weylo.admin.api.Controllers
 // PUT    /api/admin/destinations/{id}
 // DELETE /api/admin/destinations/{id}
 
-// GET    /api/admin/users
-// PUT    /api/admin/users/{id}/role
-// DELETE /api/admin/users/{id}
-
 // GET    /api/admin/routes
 // POST   /api/admin/routes/{id}/add-city

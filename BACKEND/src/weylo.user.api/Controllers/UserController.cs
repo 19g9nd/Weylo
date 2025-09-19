@@ -53,6 +53,7 @@ namespace weylo.user.api.Controllers
                     Id = user.Id,
                     Email = user.Email,
                     Username = user.Username,
+                    Role = user.Role,
                     IsEmailVerified = user.IsEmailVerified,
                     CreatedAt = user.CreatedAt
                 }

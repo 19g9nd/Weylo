@@ -153,6 +153,48 @@
             "UpstreamHttpMethod": [
                 "PATCH"
             ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Admin/users",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "admin_api",
+                    "Port": 82
+                }
+            ],
+            "UpstreamPathTemplate": "/api/admin/users",
+            "UpstreamHttpMethod": [
+                "GET"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Admin/users/{userId}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "admin_api",
+                    "Port": 82
+                }
+            ],
+            "UpstreamPathTemplate": "/api/admin/users/{userId}",
+            "UpstreamHttpMethod": [
+                "DELETE"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Admin/users/{userId}/role",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "admin_api",
+                    "Port": 82
+                }
+            ],
+            "UpstreamPathTemplate": "/api/admin/users/{userId}/role",
+            "UpstreamHttpMethod": [
+                "PUT"
+            ]
         }
     ],
     "GlobalConfiguration": {
