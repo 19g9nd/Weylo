@@ -125,7 +125,7 @@ namespace weylo.admin.api.Controllers
                     userId, request.NewRole, currentUserId
                 );
 
-                return Ok("User role updated successfully");
+                return Ok(new { message = "User role updated successfully" });
             }
             catch (Exception ex)
             {

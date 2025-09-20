@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "./context/AuthContext";
-import Navigation from "./components/ui/navigation";
 import { AdminProvider } from "./context/AdminContext";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,7 +30,11 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <AuthProvider>
-          <AdminProvider>{children}</AdminProvider>
+          <AdminProvider>
+            {children}
+            <Analytics />
+            <SpeedInsights />
+          </AdminProvider>
         </AuthProvider>
       </body>
     </html>

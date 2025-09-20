@@ -134,6 +134,7 @@ namespace weylo.shared.Models
         [MaxLength(500)]
         public string? CachedAddress { get; set; }
         public DateTime? CacheUpdatedAt { get; set; }
+        public string GoogleType { get; set; } = "general"; // !! возможно приедтся сделать несколько типов так как фильтрация по ним может быть некорректной
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

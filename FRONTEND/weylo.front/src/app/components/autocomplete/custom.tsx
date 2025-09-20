@@ -6,39 +6,6 @@ interface Props {
   onPlaceSelect: (place: google.maps.places.Place | null) => void;
 }
 
-// const savePlaceToBackend = async (place: google.maps.places.Place) => {
-//   try {
-//     const name = place.displayName || "";
-//     const address = place.formattedAddress || "";
-//     const location = place.location;
-//     const types = place.types || [];
-
-//     const response = await fetch("http://localhost:5041/Trips/SavePlace", {
-//       method: "POST",
-//       headers: {
-//         "Content-Type": "application/json",
-//       },
-//       body: JSON.stringify({
-//         name: name,
-//         address: address,
-//         latitude: location?.lat() || null,
-//         longitude: location?.lng() || null,
-//         type: types.length > 0 ? types[0] : "unknown",
-//         placeId: place.id,
-//       }),
-//     });
-
-//     if (!response.ok) {
-//       throw new Error("Failed to save place");
-//     }
-
-//     return await response.json();
-//   } catch (error) {
-//     console.error("Error saving place:", error);
-//     throw error;
-//   }
-// };
-
 export const AutocompleteCustom = ({ onPlaceSelect }: Props) => {
   const places = useMapsLibrary("places");
   const [inputValue, setInputValue] = useState<string>("");
@@ -68,8 +35,6 @@ export const AutocompleteCustom = ({ onPlaceSelect }: Props) => {
             "iconBackgroundColor",
           ],
         });
-
-        // await savePlaceToBackend(place);
 
         setInputValue("");
         resetSession();

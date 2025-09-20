@@ -56,9 +56,15 @@ const MapWithMarkers = ({
 };
 
 const MapPage = () => {
-  const { places, selectedPlace, addPlace, removePlace, setSelectedPlaceId } =
-    useSavedPlaces();
-
+  const { 
+    places, 
+    selectedPlace, 
+    addPlace, 
+    removePlace, 
+    setSelectedPlaceId,
+    isLoading,
+    error 
+  } = useSavedPlaces();
   const handlePlaceSelect = (place: google.maps.places.Place | null) => {
     if (!place) return;
 
@@ -109,54 +115,17 @@ const MapPage = () => {
             disableDefaultUI={false}
             className="flex-1 rounded-lg"
             styles={[
-              {
-                elementType: "geometry",
-                stylers: [{ color: "#f5f5f5" }],
-              },
-              {
-                elementType: "labels.icon",
-                stylers: [{ visibility: "off" }],
-              },
-              {
-                elementType: "labels.text.fill",
-                stylers: [{ color: "#616161" }],
-              },
-              {
-                elementType: "labels.text.stroke",
-                stylers: [{ color: "#f5f5f5" }],
-              },
-              {
-                featureType: "administrative.land_parcel",
-                stylers: [{ visibility: "off" }],
-              },
-              {
-                featureType: "administrative.neighborhood",
-                stylers: [{ visibility: "off" }],
-              },
-              {
-                featureType: "poi",
-                elementType: "labels.text",
-                stylers: [{ visibility: "off" }],
-              },
-              {
-                featureType: "road",
-                elementType: "labels.icon",
-                stylers: [{ visibility: "off" }],
-              },
-              {
-                featureType: "transit",
-                stylers: [{ visibility: "off" }],
-              },
-              {
-                featureType: "water",
-                elementType: "geometry",
-                stylers: [{ color: "#c5e4f9" }],
-              },
-              {
-                featureType: "water",
-                elementType: "labels.text.fill",
-                stylers: [{ color: "#9e9e9e" }],
-              },
+              { elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
+              { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+              { elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
+              { elementType: "labels.text.stroke", stylers: [{ color: "#f5f5f5" }] },
+              { featureType: "administrative.land_parcel", stylers: [{ visibility: "off" }] },
+              { featureType: "administrative.neighborhood", stylers: [{ visibility: "off" }] },
+              { featureType: "poi", elementType: "labels.text", stylers: [{ visibility: "off" }] },
+              { featureType: "road", elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+              { featureType: "transit", stylers: [{ visibility: "off" }] },
+              { featureType: "water", elementType: "geometry", stylers: [{ color: "#c5e4f9" }] },
+              { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
             ]}
           >
             <AutocompleteControl
@@ -174,6 +143,8 @@ const MapPage = () => {
             selectedPlaceId={selectedPlace?.placeId || null}
             onPlaceSelect={setSelectedPlaceId}
             onPlaceRemove={removePlace}
+            isLoading={isLoading}
+            error={error}
           />
         </div>
       </div>

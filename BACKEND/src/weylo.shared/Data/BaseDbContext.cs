@@ -98,23 +98,50 @@ namespace weylo.shared.Data
 
             // --- Destination ---
             modelBuilder.Entity<Destination>(entity =>
-            {
-                entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
-                entity.Property(e => e.GooglePlaceId).HasMaxLength(255).IsRequired();
-                entity.Property(e => e.CachedDescription).HasMaxLength(1000);
-                entity.Property(e => e.CachedImageUrl).HasMaxLength(500);
-                entity.Property(e => e.CachedAddress).HasMaxLength(500);
+   {
+       entity.Property(e => e.Name)
+           .HasMaxLength(200)
+           .IsRequired();
 
-                entity.HasOne(d => d.Category)
-                    .WithMany()
-                    .HasForeignKey(d => d.CategoryId)
-                    .OnDelete(DeleteBehavior.Restrict);
+       entity.Property(e => e.GooglePlaceId)
+           .HasMaxLength(255)
+           .IsRequired();
 
-                entity.HasOne(d => d.City)
-                    .WithMany()
-                    .HasForeignKey(d => d.CityId)
-                    .OnDelete(DeleteBehavior.Restrict);
-            });
+       entity.Property(e => e.CachedDescription)
+           .HasMaxLength(1000);
+
+       entity.Property(e => e.CachedImageUrl)
+           .HasMaxLength(500);
+
+       entity.Property(e => e.CachedAddress)
+           .HasMaxLength(500);
+
+       entity.Property(e => e.GoogleType)
+           .HasMaxLength(100)       // limit GoogleType
+           .HasDefaultValue("general"); // default value
+
+       entity.Property(e => e.CachedRating)
+           .HasPrecision(3, 1); // rating like 4.5, 5.0
+
+       entity.Property(e => e.Latitude)
+           .HasPrecision(9, 6);
+
+       entity.Property(e => e.Longitude)
+           .HasPrecision(9, 6);
+
+       entity.HasOne(d => d.Category)
+           .WithMany()
+           .HasForeignKey(d => d.CategoryId)
+           .OnDelete(DeleteBehavior.Restrict);
+
+       entity.HasOne(d => d.City)
+           .WithMany()
+           .HasForeignKey(d => d.CityId)
+           .OnDelete(DeleteBehavior.Restrict);
+
+       entity.HasIndex(e => e.GooglePlaceId)
+           .IsUnique(); // index by GooglePlaceId for unique constraint and fast lookup
+   });
 
             // --- UserRoute ---
             modelBuilder.Entity<UserRoute>(entity =>
