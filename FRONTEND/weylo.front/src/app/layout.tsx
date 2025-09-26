@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "./context/AuthContext";
 import { AdminProvider } from "./context/AdminContext";
+import { CountriesProvider } from "./context/CountriesContext";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
@@ -31,7 +32,7 @@ export default function RootLayout({
       <body>
         <AuthProvider>
           <AdminProvider>
-            {children}
+            <CountriesProvider>{children}</CountriesProvider>
             <Analytics />
             <SpeedInsights />
           </AdminProvider>

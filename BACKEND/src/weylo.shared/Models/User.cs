@@ -74,6 +74,11 @@ namespace weylo.shared.Models
 
         [MaxLength(3)]
         public string Code { get; set; } = string.Empty; // "US", "UK", "AZ"
+        public double SouthBound { get; set; } 
+        public double WestBound { get; set; } 
+        public double NorthBound { get; set; }
+        public double EastBound { get; set; } 
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         // Google Place ID for country 
         [MaxLength(255)]

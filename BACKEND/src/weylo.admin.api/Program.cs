@@ -1,63 +1,3 @@
-
-// // Register app services
-// builder.Services.AddScoped<IAdminService, AdminService>();
-// builder.Services.AddScoped<IDataSeeder, DataSeeder>();
-
-// // CORS
-// builder.Services.AddCors(options =>
-// {
-//     options.AddPolicy("AllowAll",
-//         policy =>
-//         {
-//             policy.AllowAnyOrigin()
-//                   .AllowAnyMethod()
-//                   .AllowAnyHeader();
-//         });
-// });
-
-// // Build app
-// var app = builder.Build();
-
-// // Database initialization + seeding
-// using (var scope = app.Services.CreateScope())
-// {
-//     var services = scope.ServiceProvider;
-//     var logger = services.GetRequiredService<ILogger<Program>>();
-
-//     try
-//     {
-//         var context = services.GetRequiredService<AdminDbContext>();
-//         await context.Database.CanConnectAsync();
-//         logger.LogInformation("Connected to Admin database");
-//         var seeder = services.GetRequiredService<IDataSeeder>();
-//         await seeder.SeedAsync();
-//     }
-//     catch (Exception ex)
-//     {
-//         logger.LogError(ex, "Admin API database initialization failed.");
-//         throw;
-//     }
-// }
-
-// // Middleware
-// app.UseSwagger();
-// app.UseSwaggerUI(c =>
-// {
-//     c.SwaggerEndpoint("/swagger/v1/swagger.json", "Weylo Admin API v1");
-//     c.RoutePrefix = "swagger";
-//     c.DisplayRequestDuration();
-// });
-
-// app.UseHttpsRedirection();
-// app.UseCors("AllowAll");
-
-// app.UseAuthentication();
-// app.UseAuthorization();
-
-// app.MapControllers();
-
-// app.Run();
-
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -71,6 +11,7 @@ using weylo.shared.Data;
 using weylo.admin.api.Data;
 using weylo.admin.api.Services.Interfaces;
 using weylo.admin.api.Services;
+using weylo.admin.api.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -227,10 +168,11 @@ builder.Services.AddAuthentication(options =>
 // Register services
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IDataSeeder, DataSeeder>();
+builder.Services.AddHttpClient<IGoogleGeocodingService, GoogleGeocodingService>();
 
 builder.Services.AddScoped<BaseDbContext>(provider =>
     provider.GetRequiredService<AdminDbContext>());
-
+builder.Services.AddScoped<CountrySupportMiddleware>();
 // CORS
 builder.Services.AddCors(options =>
 {
@@ -284,5 +226,5 @@ app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-
+app.UseCountrySupport();
 app.Run();

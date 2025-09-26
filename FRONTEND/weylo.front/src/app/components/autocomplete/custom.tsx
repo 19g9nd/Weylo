@@ -1,15 +1,25 @@
 import React, { FormEvent, useCallback, useState } from "react";
 import { useAutocompleteSuggestions } from "../../hooks/useAutocompleteSuggestions";
 import { useMapsLibrary } from "@vis.gl/react-google-maps";
+import { SupportedCountry } from "../../services/countriesService";
 
 interface Props {
   onPlaceSelect: (place: google.maps.places.Place | null) => void;
+  selectedCountry?: SupportedCountry | null; 
 }
 
-export const AutocompleteCustom = ({ onPlaceSelect }: Props) => {
+export const AutocompleteCustom = ({
+  onPlaceSelect,
+  selectedCountry,
+}: Props) => {
   const places = useMapsLibrary("places");
   const [inputValue, setInputValue] = useState<string>("");
-  const { suggestions, resetSession } = useAutocompleteSuggestions(inputValue);
+
+  const { suggestions, resetSession } = useAutocompleteSuggestions(
+    inputValue,
+    {},
+    selectedCountry
+  );
 
   const handleInput = useCallback((event: FormEvent<HTMLInputElement>) => {
     setInputValue((event.target as HTMLInputElement).value);
@@ -51,7 +61,11 @@ export const AutocompleteCustom = ({ onPlaceSelect }: Props) => {
       <input
         value={inputValue}
         onInput={handleInput}
-        placeholder="Search for a place"
+        placeholder={
+          selectedCountry
+            ? `Search places in ${selectedCountry.name}`
+            : "Search for a place"
+        }
         className="autocomplete-input border-gray-300 rounded-lg bg-white text-main-text focus:ring-2 focus:ring-yellow focus:border-transparent"
       />
 

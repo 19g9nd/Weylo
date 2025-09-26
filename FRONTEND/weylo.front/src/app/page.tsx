@@ -2,11 +2,42 @@
 import Head from "next/head";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import Navigation from "./components/ui/navigation";
 import Footer from "./components/ui/footer";
+import CountryDropdown from "./components/ui/country-dropdown";
+import { SupportedCountry } from "./services/countriesService";
 import bgImage from '../../public/images/mainbg.png'
+
 export default function Home() {
   const router = useRouter();
+  const [selectedCountry, setSelectedCountry] = useState<SupportedCountry | null>(null);
+  const [checkInDate, setCheckInDate] = useState("");
+  const [checkOutDate, setCheckOutDate] = useState("");
+
+  const handleSearch = () => {
+    if (selectedCountry) {
+      // Navigate to map page with country filter
+      const searchParams = new URLSearchParams({
+        country: selectedCountry.code,
+        countryName: selectedCountry.name,
+      });
+      
+      if (checkInDate) {
+        searchParams.set('checkIn', checkInDate);
+      }
+      
+      if (checkOutDate) {
+        searchParams.set('checkOut', checkOutDate);
+      }
+      
+      router.push(`/map?${searchParams.toString()}`);
+    } else {
+      // Navigate to map page without filter
+      router.push('/map');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Head>
@@ -20,6 +51,7 @@ export default function Home() {
 
       {/* Navigation */}
       <Navigation />
+      
       {/* Hero Section */}
       <section className="relative h-screen flex items-center justify-center">
         <div className="absolute inset-0 z-0">
@@ -30,8 +62,7 @@ export default function Home() {
             objectFit="cover"
             priority
           />
-          <div className="absolute inset-0 bg-black opacity-10"></div>{" "}
-          {/* slightly darker */}
+          <div className="absolute inset-0 bg-black opacity-10"></div>
         </div>
         <div className="z-10 text-center text-brown-text px-4">
           <h1 className="text-4xl md:text-6xl font-bold mb-6">
@@ -42,28 +73,76 @@ export default function Home() {
             our curated travel experiences.
           </p>
 
-          <div className="bg-white p-6 md:p-8 rounded-lg shadow-lg max-w-3xl mx-auto">
-            <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-              {["Destination", "Check In", "Check Out"].map((label, i) => (
-                <div key={i} className="w-full md:w-1/4 px-2">
-                  <label className="block text-main-text text-sm font-semibold mb-2 text-left">
-                    {label}
-                  </label>
-                  <input
-                    type={label === "Destination" ? "text" : "date"}
-                    placeholder={
-                      label === "Destination" ? "Where to?" : undefined
-                    }
-                    className="w-full p-2 border border-gray-300 rounded text-main-text focus:ring-2 focus:ring-yellow"
-                  />
-                </div>
-              ))}
-              <div className="w-full md:w-1/4 px-2">
-                <button className="w-full bg-yellow hover:bg-yellow/90 text-main-text font-bold py-3 px-4 rounded mt-5 transition-colors">
-                  Search
+          <div className="bg-white p-6 md:p-8 rounded-lg shadow-lg max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+              {/* Destination */}
+              <div className="w-full">
+                <label className="block text-main-text text-sm font-semibold mb-2 text-left">
+                  Destination
+                </label>
+                <CountryDropdown
+                  onCountrySelect={setSelectedCountry}
+                  selectedCountry={selectedCountry}
+                  placeholder="Where to?"
+                  className="w-full"
+                />
+              </div>
+
+              {/* Check In */}
+              <div className="w-full">
+                <label className="block text-main-text text-sm font-semibold mb-2 text-left">
+                  Check In
+                </label>
+                <input
+                  type="date"
+                  value={checkInDate}
+                  onChange={(e) => setCheckInDate(e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded-lg text-main-text focus:ring-2 focus:ring-yellow focus:border-transparent"
+                />
+              </div>
+
+              {/* Check Out */}
+              <div className="w-full">
+                <label className="block text-main-text text-sm font-semibold mb-2 text-left">
+                  Check Out
+                </label>
+                <input
+                  type="date"
+                  value={checkOutDate}
+                  onChange={(e) => setCheckOutDate(e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded-lg text-main-text focus:ring-2 focus:ring-yellow focus:border-transparent"
+                  min={checkInDate}
+                />
+              </div>
+
+              {/* Search Button */}
+              <div className="w-full">
+                <button 
+                  onClick={handleSearch}
+                  className="w-full bg-yellow hover:bg-yellow/90 text-main-text font-bold py-3 px-4 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!selectedCountry}
+                >
+                  Explore
                 </button>
               </div>
             </div>
+            
+            {/* Selected country info */}
+            {selectedCountry && (
+              <div className="mt-4 p-3 bg-yellow/10 rounded-lg border border-yellow/20">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-main-text">
+                    Ready to explore <strong>{selectedCountry.name}</strong>
+                  </span>
+                  <button
+                    onClick={() => setSelectedCountry(null)}
+                    className="text-xs text-gray-500 hover:text-gray-700"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </section>

@@ -223,6 +223,133 @@
             "UpstreamHttpMethod": [
                 "PUT"
             ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Countries",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "admin_api",
+                    "Port": 82
+                }
+            ],
+            "UpstreamPathTemplate": "/api/admin/countries",
+            "UpstreamHttpMethod": [
+                "GET"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Countries/supported",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "admin_api",
+                    "Port": 82
+                }
+            ],
+            "UpstreamPathTemplate": "/api/admin/countries/supported",
+            "UpstreamHttpMethod": [
+                "GET"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Countries/codes",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "admin_api",
+                    "Port": 82
+                }
+            ],
+            "UpstreamPathTemplate": "/api/admin/countries/codes",
+            "UpstreamHttpMethod": [
+                "GET"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Countries/{id}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "admin_api",
+                    "Port": 82
+                }
+            ],
+            "UpstreamPathTemplate": "/api/admin/countries/{id}",
+            "UpstreamHttpMethod": [
+                "GET",
+                "DELETE"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Countries/by-code/{code}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "admin_api",
+                    "Port": 82
+                }
+            ],
+            "UpstreamPathTemplate": "/api/admin/countries/by-code/{code}",
+            "UpstreamHttpMethod": [
+                "GET"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Countries",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "admin_api",
+                    "Port": 82
+                }
+            ],
+            "UpstreamPathTemplate": "/api/admin/countries",
+            "UpstreamHttpMethod": [
+                "POST"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Countries/bulk-create",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "admin_api",
+                    "Port": 82
+                }
+            ],
+            "UpstreamPathTemplate": "/api/admin/countries/bulk-create",
+            "UpstreamHttpMethod": [
+                "POST"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Countries/{id}/refresh-data",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "admin_api",
+                    "Port": 82
+                }
+            ],
+            "UpstreamPathTemplate": "/api/admin/countries/{id}/refresh-data",
+            "UpstreamHttpMethod": [
+                "PUT"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Countries/check-support/{countryCode}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "admin_api",
+                    "Port": 82
+                }
+            ],
+            "UpstreamPathTemplate": "/api/admin/countries/check-support/{countryCode}",
+            "UpstreamHttpMethod": [
+                "GET"
+            ]
         }
     ],
     "GlobalConfiguration": {

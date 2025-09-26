@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { SavedPlace } from "../../types/map";
+import { SupportedCountry } from "../../services/countriesService";
 
 interface SidebarProps {
   places: SavedPlace[];
@@ -9,6 +10,8 @@ interface SidebarProps {
   onPlaceRemove: (placeId: string) => void;
   isLoading?: boolean;
   error?: string | null;
+  countryFilter?: string;
+  selectedCountry?: SupportedCountry | null;
 }
 
 const HIDDEN_TYPES = [
@@ -26,7 +29,11 @@ const Sidebar: React.FC<SidebarProps> = ({
   onPlaceRemove,
   isLoading = false,
   error = null,
+  countryFilter,
+  selectedCountry,
 }) => {
+  const countryName = selectedCountry?.name || countryFilter;
+
   if (isLoading) {
     return (
       <div className="w-80 bg-white border-l border-gray-200 p-4 flex items-center justify-center">
@@ -47,28 +54,50 @@ const Sidebar: React.FC<SidebarProps> = ({
       )}
 
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold">Saved Places</h3>
-        {places.length > 0 && (
-          <div className="flex items-center gap-2">
+        <h3 className="text-lg font-semibold">
+          {countryName ? `Places in ${countryName}` : "Saved Places"}
+        </h3>
+        <div className="flex items-center gap-2">
+          {places.length > 0 && (
             <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">
-              {places.length} {places.length === 1 ? 'place' : 'places'}
+              {places.length} {places.length === 1 ? "place" : "places"}
             </span>
-            <div 
-              className="w-2 h-2 rounded-full bg-green-500" 
-              title="Synced with server"
-            />
-          </div>
-        )}
+          )}
+          <div
+            className="w-2 h-2 rounded-full bg-green-500"
+            title="Synced with server"
+          />
+        </div>
       </div>
+
+      {/* Country filter info */}
+      {countryName && (
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-yellow-800">
+                🌍 Filtered by: <strong>{countryName}</strong>
+              </span>
+            </div>
+          </div>
+          <p className="text-xs text-yellow-700 mt-1">
+            Search results are limited to places in {countryName}
+          </p>
+        </div>
+      )}
 
       {places.length === 0 ? (
         <div className="text-center py-8">
           <div className="text-gray-400 text-4xl mb-4">📍</div>
           <p className="text-gray-500 text-center">
-            No places saved yet. Start searching to add places!
+            {countryName
+              ? `No places saved in ${countryName} yet.`
+              : "No places saved yet."}
           </p>
           <p className="text-gray-400 text-sm mt-2">
-            Use the search box above to find and save interesting locations.
+            {countryName
+              ? `Use the search box to find places in ${countryName}.`
+              : "Use the search box above to find and save interesting locations."}
           </p>
         </div>
       ) : (
@@ -172,9 +201,14 @@ const Sidebar: React.FC<SidebarProps> = ({
 
           <div className="mt-6 pt-4 border-t border-gray-200">
             <div className="flex items-center justify-between text-sm text-gray-500">
-              <span>Total places: {places.length}</span>
-              <button 
-                onClick={() => {/* TODO: implement clear all */}}
+              <span>
+                Total places: {places.length}
+                {countryName && ` in ${countryName}`}
+              </span>
+              <button
+                onClick={() => {
+                  /* TODO: implement clear all */
+                }}
                 className="text-red-500 hover:text-red-700 text-xs"
               >
                 Clear all
