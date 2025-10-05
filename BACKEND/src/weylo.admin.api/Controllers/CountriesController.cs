@@ -109,19 +109,19 @@ namespace weylo.admin.api.Controllers
 
                 if (geocodingResult == null)
                 {
-                    return BadRequest($"Could not find country '{request.CountryName}' in Google Geocoding API");
+                    return BadRequest(new { message = $"Could not find country '{request.CountryName}' in Google Geocoding API" });
                 }
 
                 var countryCode = geocodingResult.CountryCode;
                 if (string.IsNullOrEmpty(countryCode))
                 {
-                    return BadRequest($"Could not determine country code for '{request.CountryName}'");
+                    return BadRequest(new { message = $"Could not determine country code for '{request.CountryName}'" });
                 }
 
                 // Check if country already exists
                 if (await _context.Countries.AnyAsync(c => c.Code == countryCode))
                 {
-                    return BadRequest($"Country with code '{countryCode}' already exists");
+                    return BadRequest(new { message = $"Country with code '{countryCode}' already exists" });
                 }
 
                 var country = new Country

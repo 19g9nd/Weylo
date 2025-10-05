@@ -1,5 +1,5 @@
 // services/placesService.ts
-import { SavedPlace } from "../types/map";
+import { BackendPlace, SavedPlace } from "../types/map";
 import { ApiResponse } from "../types/shared";
 import httpClient from "./httpClient";
 
@@ -14,21 +14,6 @@ interface SavePlaceRequest {
   cityName: string;
   countryName: string;
   googleType?: string;
-}
-
-interface BackendPlace {
-  id: number;
-  googlePlaceId: string;
-  name: string;
-  latitude: number;
-  longitude: number;
-  cachedAddress?: string;
-  cachedRating?: number;
-  cachedImageUrl?: string;
-  googleType?: string;
-  city: string;
-  category: string;
-  createdAt: string;
 }
 
 const extractLocationInfo = (
@@ -65,6 +50,14 @@ export const placesService = {
     );
   },
 
+  async deletePlace(
+    backendId: number
+  ): Promise<ApiResponse<{ success: boolean }>> {
+    return httpClient.delete<{ success: boolean }>(
+      `/api/user/destinations/${backendId}`
+    );
+  },
+
   async getMyPlaces(): Promise<ApiResponse<SavedPlace[]>> {
     const response = await httpClient.get<BackendPlace[]>(
       "/api/user/destinations/my"
@@ -79,6 +72,7 @@ export const placesService = {
 
     const places: SavedPlace[] = response.data.map((bp) => ({
       placeId: bp.googlePlaceId,
+      backendId: bp.id,
       displayName: bp.name,
       formattedAddress: bp.cachedAddress || "",
       location: {

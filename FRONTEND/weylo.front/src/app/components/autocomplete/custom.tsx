@@ -1,7 +1,7 @@
 import React, { FormEvent, useCallback, useState } from "react";
 import { useAutocompleteSuggestions } from "../../hooks/useAutocompleteSuggestions";
 import { useMapsLibrary } from "@vis.gl/react-google-maps";
-import { SupportedCountry } from "../../services/countriesService";
+import { SupportedCountry } from "../../types/country";
 
 interface Props {
   onPlaceSelect: (place: google.maps.places.Place | null) => void;

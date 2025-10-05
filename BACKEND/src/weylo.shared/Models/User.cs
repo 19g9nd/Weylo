@@ -165,7 +165,6 @@ namespace weylo.shared.Models
         [MaxLength(1000)]
         public string? Notes { get; set; }
 
-        // Статус маршрута
         [MaxLength(50)]
         public string Status { get; set; } = "Draft"; // "Draft", "Active", "Completed"
 

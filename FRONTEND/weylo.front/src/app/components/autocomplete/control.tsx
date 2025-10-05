@@ -1,7 +1,7 @@
 import React from "react";
 import { ControlPosition, MapControl } from "@vis.gl/react-google-maps";
 import { AutocompleteCustom } from "./custom";
-import { SupportedCountry } from "../../services/countriesService";
+import { SupportedCountry } from "../../types/country";
 
 type CustomAutocompleteControlProps = {
   controlPosition: ControlPosition;

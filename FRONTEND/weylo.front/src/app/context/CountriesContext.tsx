@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext, ReactNode } from "react";
 import { ApiResponse } from "../types/shared";
-import { countriesService, SupportedCountry } from "../services/countriesService";
+import { countriesService } from "../services/countriesService";
+import { SupportedCountry } from "../types/country";
 
 interface CountriesContextType {
   getSupportedCountries: () => Promise<ApiResponse<SupportedCountry[]>>;

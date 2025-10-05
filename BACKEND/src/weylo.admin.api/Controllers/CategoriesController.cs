@@ -41,7 +41,7 @@ namespace weylo.admin.api.Controllers
 
         // POST: api/admin/categories
         [HttpPost]
-        public async Task<ActionResult<Category>> PostCategory(CategoryDto categoryDto) 
+        public async Task<ActionResult<Category>> PostCategory(CategoryDto categoryDto)
         {
             if (!ModelState.IsValid)
             {
@@ -60,7 +60,8 @@ namespace weylo.admin.api.Controllers
             {
                 Name = categoryDto.Name.Trim(),
                 Description = categoryDto.Description,
-                Icon = categoryDto.Icon
+                Icon = categoryDto.Icon,
+                GoogleTypes = categoryDto.GoogleTypes
             };
 
             _context.Categories.Add(category);
@@ -71,7 +72,7 @@ namespace weylo.admin.api.Controllers
 
         // PUT: api/admin/categories/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutCategory(int id, CategoryDto categoryDto) 
+        public async Task<IActionResult> PutCategory(int id, CategoryDto categoryDto)
         {
             if (!ModelState.IsValid)
             {
@@ -95,7 +96,7 @@ namespace weylo.admin.api.Controllers
             category.Name = categoryDto.Name.Trim();
             category.Description = categoryDto.Description;
             category.Icon = categoryDto.Icon;
-
+            category.GoogleTypes = categoryDto.GoogleTypes;
             _context.Entry(category).State = EntityState.Modified;
 
             try
@@ -152,5 +153,6 @@ namespace weylo.admin.api.Controllers
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string? Icon { get; set; }
+        public string? GoogleTypes { get; set; }
     }
 }

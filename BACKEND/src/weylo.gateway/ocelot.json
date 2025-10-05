@@ -182,6 +182,20 @@
                 "GET"
             ]
         },
+         {
+            "DownstreamPathTemplate": "/api/Destinations/{destinationId}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/user/destinations/{destinationId}",
+            "UpstreamHttpMethod": [
+                "DELETE"
+            ]
+        },
         {
             "DownstreamPathTemplate": "/api/Admin/users",
             "DownstreamScheme": "http",
@@ -349,6 +363,37 @@
             "UpstreamPathTemplate": "/api/admin/countries/check-support/{countryCode}",
             "UpstreamHttpMethod": [
                 "GET"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/admin/Categories",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "admin_api",
+                    "Port": 82
+                }
+            ],
+            "UpstreamPathTemplate": "/api/admin/categories",
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/admin/Categories/{id}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "admin_api",
+                    "Port": 82
+                }
+            ],
+            "UpstreamPathTemplate": "/api/admin/categories/{id}",
+            "UpstreamHttpMethod": [
+                "GET",
+                "PUT",
+                "DELETE"
             ]
         }
     ],

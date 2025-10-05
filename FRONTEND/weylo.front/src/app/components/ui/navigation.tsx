@@ -102,7 +102,7 @@ export default function Navigation() {
               onClick={() => navigateTo("/")}
               className="flex items-center group"
             >
-              <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
+              <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent cursor-pointer">
                 Weylo
               </span>
             </button>

@@ -1,6 +1,6 @@
 import { useMapsLibrary } from "@vis.gl/react-google-maps";
 import { useEffect, useRef, useState } from "react";
-import { SupportedCountry } from "../services/countriesService";
+import { SupportedCountry } from "../types/country";
 
 export type UseAutocompleteSuggestionsReturn = {
   suggestions: google.maps.places.AutocompleteSuggestion[];

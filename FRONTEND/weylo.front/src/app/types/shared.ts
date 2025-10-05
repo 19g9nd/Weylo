@@ -8,7 +8,6 @@ export interface User {
   updatedAt: string;
 }
 
-// API response wrapper
 export interface ApiResponse<T> {
   data?: T;
   error?: string;

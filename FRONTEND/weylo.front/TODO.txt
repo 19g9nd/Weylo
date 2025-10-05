@@ -1,3 +1,0 @@
-1. Change password page
-2. Change username page
-3. Fix email confirmation link +

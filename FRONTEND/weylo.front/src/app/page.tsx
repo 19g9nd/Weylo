@@ -6,12 +6,13 @@ import { useState } from "react";
 import Navigation from "./components/ui/navigation";
 import Footer from "./components/ui/footer";
 import CountryDropdown from "./components/ui/country-dropdown";
-import { SupportedCountry } from "./services/countriesService";
-import bgImage from '../../public/images/mainbg.png'
+import bgImage from "../../public/images/mainbg.png";
+import { SupportedCountry } from "./types/country";
 
 export default function Home() {
   const router = useRouter();
-  const [selectedCountry, setSelectedCountry] = useState<SupportedCountry | null>(null);
+  const [selectedCountry, setSelectedCountry] =
+    useState<SupportedCountry | null>(null);
   const [checkInDate, setCheckInDate] = useState("");
   const [checkOutDate, setCheckOutDate] = useState("");
 
@@ -22,19 +23,19 @@ export default function Home() {
         country: selectedCountry.code,
         countryName: selectedCountry.name,
       });
-      
+
       if (checkInDate) {
-        searchParams.set('checkIn', checkInDate);
+        searchParams.set("checkIn", checkInDate);
       }
-      
+
       if (checkOutDate) {
-        searchParams.set('checkOut', checkOutDate);
+        searchParams.set("checkOut", checkOutDate);
       }
-      
+
       router.push(`/map?${searchParams.toString()}`);
     } else {
       // Navigate to map page without filter
-      router.push('/map');
+      router.push("/map");
     }
   };
 
@@ -51,16 +52,16 @@ export default function Home() {
 
       {/* Navigation */}
       <Navigation />
-      
+
       {/* Hero Section */}
       <section className="relative h-screen flex items-center justify-center">
         <div className="absolute inset-0 z-0">
           <Image
             src={bgImage}
             alt="Beautiful landscape"
-            layout="fill"
-            objectFit="cover"
+            fill
             priority
+            className="object-cover"
           />
           <div className="absolute inset-0 bg-black opacity-10"></div>
         </div>
@@ -117,7 +118,7 @@ export default function Home() {
 
               {/* Search Button */}
               <div className="w-full">
-                <button 
+                <button
                   onClick={handleSearch}
                   className="w-full bg-yellow hover:bg-yellow/90 text-main-text font-bold py-3 px-4 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={!selectedCountry}
@@ -126,7 +127,7 @@ export default function Home() {
                 </button>
               </div>
             </div>
-            
+
             {/* Selected country info */}
             {selectedCountry && (
               <div className="mt-4 p-3 bg-yellow/10 rounded-lg border border-yellow/20">
@@ -179,8 +180,9 @@ export default function Home() {
                   <Image
                     src={destination.image}
                     alt={destination.name}
-                    layout="fill"
-                    objectFit="cover"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 25vw"
                   />
                 </div>
                 <div className="p-6 bg-white">
@@ -244,8 +246,9 @@ export default function Home() {
                   <Image
                     src={packageItem.image}
                     alt={packageItem.name}
-                    layout="fill"
-                    objectFit="cover"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   />
                 </div>
                 <div className="p-6">
@@ -306,9 +309,9 @@ export default function Home() {
                     <Image
                       src={testimonial.image}
                       alt={testimonial.name}
-                      layout="fill"
-                      objectFit="cover"
-                      sizes="(max-width: 768px) 50px, 3rem"
+                      fill
+                      className="object-cover"
+                      sizes="3rem"
                     />
                   </div>
                   <h3 className="font-semibold text-main-text">

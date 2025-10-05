@@ -114,126 +114,222 @@ export default function UsersPage() {
   return (
     <>
       <Navigation />
-      <div className="min-h-screen bg-background p-6">
+      <div className="min-h-screen bg-background p-4 sm:p-6">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-main-text">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
+            <div className="flex-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-main-text">
                 User Management
               </h1>
-              <p className="text-brown-text mt-2">
+              <p className="text-brown-text mt-1 sm:mt-2 text-sm sm:text-base">
                 Manage all system users and their permissions
               </p>
             </div>
             <button
               onClick={fetchUsers}
-              className="bg-yellow hover:bg-yellow/90 text-main-text px-4 py-2 rounded-lg font-medium transition-colors"
+              className="w-full sm:w-auto bg-yellow hover:bg-yellow/90 text-main-text px-4 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base"
             >
-              Refresh
+              Refresh Users
             </button>
           </div>
 
           {/* Messages */}
           {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
-              {error}
-              <button onClick={() => setError("")} className="float-right">
-                ×
-              </button>
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 sm:mb-6 text-sm sm:text-base">
+              <div className="flex justify-between items-center">
+                <span>{error}</span>
+                <button
+                  onClick={() => setError("")}
+                  className="text-lg font-bold hover:text-red-900"
+                >
+                  ×
+                </button>
+              </div>
             </div>
           )}
 
           {success && (
-            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-6">
-              {success}
-              <button onClick={() => setSuccess("")} className="float-right">
-                ×
-              </button>
+            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4 sm:mb-6 text-sm sm:text-base">
+              <div className="flex justify-between items-center">
+                <span>{success}</span>
+                <button
+                  onClick={() => setSuccess("")}
+                  className="text-lg font-bold hover:text-green-900"
+                >
+                  ×
+                </button>
+              </div>
             </div>
           )}
 
-          {/* Users Table */}
+          {/* Users Table/Cards */}
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
             {loading ? (
               <div className="flex justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow"></div>
               </div>
             ) : users.length === 0 ? (
-              <div className="text-center py-12 text-brown-text">
+              <div className="text-center py-12 text-brown-text text-sm sm:text-base">
                 No users found
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-brown-text uppercase tracking-wider">
-                        User
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-brown-text uppercase tracking-wider">
-                        Role
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-brown-text uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-brown-text uppercase tracking-wider">
-                        Created
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-brown-text uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {users.map((userItem) => (
-                      <tr key={userItem.id}>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-main-text">
-                                {userItem.username}
-                              </div>
-                              <div className="text-sm text-brown-text">
-                                {userItem.email}
+              <>
+                {/* Desktop Table */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-brown-text uppercase tracking-wider">
+                          User
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-brown-text uppercase tracking-wider">
+                          Role
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-brown-text uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-brown-text uppercase tracking-wider">
+                          Created
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-brown-text uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {users.map((userItem) => (
+                        <tr key={userItem.id}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div>
+                                <div className="text-sm font-medium text-main-text">
+                                  {userItem.username}
+                                </div>
+                                <div className="text-sm text-brown-text">
+                                  {userItem.email}
+                                </div>
                               </div>
                             </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <select
+                              value={userItem.role}
+                              onChange={(e) =>
+                                handleChangeRole(userItem.id, e.target.value)
+                              }
+                              disabled={
+                                userItem.id === user?.id ||
+                                userItem.role === "SuperAdmin"
+                              }
+                              className="text-sm text-main-text bg-gray-100 rounded px-2 py-1 disabled:opacity-50 border border-gray-300 focus:border-yellow focus:ring-1 focus:ring-yellow outline-none"
+                            >
+                              <option value="User">User</option>
+                              <option value="Admin">Admin</option>
+                              <option value="SuperAdmin">SuperAdmin</option>
+                            </select>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span
+                              className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                userItem.isEmailVerified
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-yellow-100 text-yellow-800"
+                              }`}
+                            >
+                              {userItem.isEmailVerified
+                                ? "Verified"
+                                : "Unverified"}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-brown-text">
+                            {formatDate(userItem.createdAt)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button
+                              onClick={() =>
+                                handleDeleteUser(userItem.id, userItem.username)
+                              }
+                              disabled={
+                                userItem.id === user?.id ||
+                                userItem.role === "SuperAdmin"
+                              }
+                              className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile Cards */}
+                <div className="md:hidden space-y-4 p-4">
+                  {users.map((userItem) => (
+                    <div
+                      key={userItem.id}
+                      className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm"
+                    >
+                      <div className="space-y-3">
+                        {/* User Info */}
+                        <div>
+                          <div className="flex justify-between items-start">
+                            <h3 className="font-semibold text-main-text text-lg">
+                              {userItem.username}
+                            </h3>
+                            <span
+                              className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                                userItem.isEmailVerified
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-yellow-100 text-yellow-800"
+                              }`}
+                            >
+                              {userItem.isEmailVerified
+                                ? "Verified"
+                                : "Unverified"}
+                            </span>
                           </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <select
-                            value={userItem.role}
-                            onChange={(e) =>
-                              handleChangeRole(userItem.id, e.target.value)
-                            }
-                            disabled={
-                              userItem.id === user?.id ||
-                              userItem.role === "SuperAdmin"
-                            }
-                            className="text-sm text-main-text bg-gray-100 rounded px-2 py-1 disabled:opacity-50"
-                          >
-                            <option value="User">User</option>
-                            <option value="Admin">Admin</option>
-                            <option value="SuperAdmin">SuperAdmin</option>
-                          </select>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                              userItem.isEmailVerified
-                                ? "bg-green-100 text-green-800"
-                                : "bg-yellow-100 text-yellow-800"
-                            }`}
-                          >
-                            {userItem.isEmailVerified
-                              ? "Verified"
-                              : "Unverified"}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-brown-text">
-                          {formatDate(userItem.createdAt)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <p className="text-brown-text text-sm mt-1">
+                            {userItem.email}
+                          </p>
+                        </div>
+
+                        {/* Details Grid */}
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div>
+                            <span className="text-brown-text font-medium">
+                              Role:
+                            </span>
+                            <select
+                              value={userItem.role}
+                              onChange={(e) =>
+                                handleChangeRole(userItem.id, e.target.value)
+                              }
+                              disabled={
+                                userItem.id === user?.id ||
+                                userItem.role === "SuperAdmin"
+                              }
+                              className="ml-2 text-main-text bg-gray-100 rounded px-2 py-1 disabled:opacity-50 border border-gray-300 focus:border-yellow focus:ring-1 focus:ring-yellow outline-none text-sm w-full max-w-[140px]"
+                            >
+                              <option value="User">User</option>
+                              <option value="Admin">Admin</option>
+                              <option value="SuperAdmin">SuperAdmin</option>
+                            </select>
+                          </div>
+                          <div>
+                            <span className="text-brown-text font-medium">
+                              Created:
+                            </span>
+                            <span className="ml-2 text-main-text">
+                              {formatDate(userItem.createdAt)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="pt-2 border-t border-gray-100">
                           <button
                             onClick={() =>
                               handleDeleteUser(userItem.id, userItem.username)
@@ -242,16 +338,16 @@ export default function UsersPage() {
                               userItem.id === user?.id ||
                               userItem.role === "SuperAdmin"
                             }
-                            className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed py-2 px-4 rounded-md font-medium transition-colors text-sm border border-red-200"
                           >
-                            Delete
+                            Delete User
                           </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </div>
         </div>
