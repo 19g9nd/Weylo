@@ -23,6 +23,7 @@ import UnifiedSidebar from "../components/sidebar/unifiedSidebar";
 import { SupportedCountry } from "../types/country";
 import { optimizeRouteDay } from "../utils/routeUtils";
 import RouteEditModal from "../components/modal/routeEditModal";
+import { useAuth } from "../context/AuthContext";
 
 const API_KEY: string = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string;
 
@@ -42,13 +43,12 @@ const MapWithMarkers = ({
   activeRoute: Route | null;
 }) => {
   const map = useMap();
-  const boundsSetRef = useRef<string | null>(null); // Track by country code instead of boolean
+  const boundsSetRef = useRef<string | null>(null);
 
   // Restrict map to selected country bounds
   React.useEffect(() => {
     if (!map || !selectedCountry) return;
 
-    // Only set bounds if country changed
     if (boundsSetRef.current === selectedCountry.code) return;
 
     const bounds = new google.maps.LatLngBounds(
@@ -56,7 +56,6 @@ const MapWithMarkers = ({
       { lat: selectedCountry.northBound, lng: selectedCountry.eastBound }
     );
 
-    // Use setTimeout to ensure map is fully loaded
     setTimeout(() => {
       map.fitBounds(bounds);
 
@@ -72,10 +71,9 @@ const MapWithMarkers = ({
     }, 100);
   }, [map, selectedCountry]);
 
-  // Reset bounds flag when country changes
   React.useEffect(() => {
     boundsSetRef.current = null;
-  }, [selectedCountry?.code]); // Only reset when country code changes
+  }, [selectedCountry?.code]);
 
   // Selected place panning
   React.useEffect(() => {
@@ -108,7 +106,6 @@ const MapWithMarkers = ({
     }
   }, [map, activeRoute, routePlaces, sidebarMode]);
 
-  // Show route places when in route planning mode
   const displayPlaces = React.useMemo(() => {
     return sidebarMode === SidebarMode.ROUTE_PLANNING ? routePlaces : places;
   }, [sidebarMode, routePlaces, places]);
@@ -144,6 +141,7 @@ const MapWithMarkers = ({
 };
 
 const MapPage = () => {
+  const { user, isAuthenticated } = useAuth();
   const searchParams = useSearchParams();
   const [selectedCountry, setSelectedCountry] =
     useState<SupportedCountry | null>(null);
@@ -178,7 +176,11 @@ const MapPage = () => {
     routes,
     activeRoute,
     activeRouteId,
+    loaded,
+    syncing,
+    unsyncedCount,
     setActiveRouteId,
+    setUserId,
     createRoute,
     updateRoute,
     deleteRoute,
@@ -189,9 +191,19 @@ const MapPage = () => {
     movePlaceInRoute,
     duplicateRoute,
     getRouteStats,
+    syncAllRoutes,
   } = useRoutes();
 
-  // Load country data from URL parameters - only once
+  useEffect(() => {
+    if (isAuthenticated && user?.id) {
+      setUserId(user.id);
+    } else {
+      // Clear user ID and routes when logged out
+      setUserId(null);
+    }
+  }, [isAuthenticated, user?.id, setUserId]);
+
+  // Load country data from URL parameters
   useEffect(() => {
     const loadCountryFromParams = async () => {
       const countryCode = searchParams.get("country");
@@ -224,14 +236,14 @@ const MapPage = () => {
     ) {
       setActiveRouteId(routes[0].id);
     }
-  }, [sidebarMode, activeRouteId, routes]);
+  }, [sidebarMode, activeRouteId, routes, setActiveRouteId]);
 
   // Reset selected place when changing modes
   useEffect(() => {
     if (sidebarMode !== SidebarMode.COUNTRY_EXPLORATION) {
       setSelectedPlaceId(null);
     }
-  }, [sidebarMode]);
+  }, [sidebarMode, setSelectedPlaceId]);
 
   const handlePlaceSelect = (place: google.maps.places.Place | null) => {
     if (!place) return;
@@ -240,7 +252,6 @@ const MapPage = () => {
     if (!savedPlace) return;
 
     if (sidebarMode === SidebarMode.ROUTE_PLANNING && activeRouteId) {
-      // If in route planning mode with an active route, add directly to route
       setPendingPlace(savedPlace);
       setShowRouteSelectionModal(true);
     } else {
@@ -265,10 +276,12 @@ const MapPage = () => {
     setModalOpen(true);
   };
 
-  const handleCreateNewRoute = (name: string, place: SavedPlace) => {
-    const newRoute = createRoute(name);
-    addPlaceToRoute(newRoute.id, place, 1);
-    setSidebarMode(SidebarMode.ROUTE_PLANNING);
+  const handleCreateNewRoute = async (name: string, place: SavedPlace) => {
+    const newRoute = await createRoute(name);
+    if (newRoute) {
+      addPlaceToRoute(newRoute.id, place, 1);
+      setSidebarMode(SidebarMode.ROUTE_PLANNING);
+    }
   };
 
   const handleAddToExistingRoute = (routeId: string, place: SavedPlace) => {
@@ -280,44 +293,40 @@ const MapPage = () => {
     addPlaceToRoute(routeId, place, maxDay);
   };
 
-  // Route edit handler
   const handleEditRoute = (route: Route) => {
     setRouteToEdit(route);
     setRouteEditModalOpen(true);
   };
 
-  // Route save handler
-  const handleSaveRoute = (routeId: string, updates: Partial<Route>) => {
-    updateRoute(routeId, updates);
+  const handleSaveRoute = async (routeId: string, updates: Partial<Route>) => {
+    await updateRoute(routeId, updates);
     setRouteEditModalOpen(false);
     setRouteToEdit(null);
   };
 
-  // Active route switch handler
   const handleRouteSelect = (routeId: string) => {
     setActiveRouteId(routeId);
     setSidebarMode(SidebarMode.ROUTE_PLANNING);
   };
 
-  // New route creation handler
-  const handleCreateRoute = () => {
+  const handleCreateRoute = async () => {
     const name = prompt("Route name:");
     if (name) {
-      const newRoute = createRoute(name);
-      setSidebarMode(SidebarMode.ROUTE_PLANNING);
-      return newRoute;
+      const newRoute = await createRoute(name);
+      if (newRoute) {
+        setSidebarMode(SidebarMode.ROUTE_PLANNING);
+        return newRoute;
+      }
     }
     return null;
   };
 
-  // Route deletion handler
-  const handleDeleteRoute = (routeId: string) => {
+  const handleDeleteRoute = async (routeId: string) => {
     if (confirm("Are you sure you want to delete this route?")) {
-      deleteRoute(routeId);
+      await deleteRoute(routeId);
     }
   };
 
-  // Add place to route with day selection
   const handleAddPlaceToRouteWithDay = (place: SavedPlace) => {
     if (activeRouteId) {
       const route = routes.find((r) => r.id === activeRouteId);
@@ -335,7 +344,6 @@ const MapPage = () => {
     }
   };
 
-  // Move place between days
   const handleMovePlaceInRoute = (
     routeId: string,
     placeId: string,
@@ -345,7 +353,6 @@ const MapPage = () => {
     movePlaceInRoute(routeId, placeId, newDayNumber, newOrderInDay);
   };
 
-  // Optimize place order in day
   const handleOptimizeRouteDay = (routeId: string, dayNumber: number) => {
     const route = routes.find((r) => r.id === routeId);
     if (!route) return;
@@ -353,18 +360,15 @@ const MapPage = () => {
     const dayPlaces = route.places.filter((p) => p.dayNumber === dayNumber);
     const optimizedPlaces = optimizeRouteDay(dayPlaces);
 
-    // Update place order
     optimizedPlaces.forEach((place, index) => {
       movePlaceInRoute(routeId, place.placeId, dayNumber, index + 1);
     });
   };
 
-  // Get route statistics
   const handleGetRouteStats = (routeId: string) => {
     return getRouteStats(routeId);
   };
 
-  // Check route status
   const getRouteStatus = (route: Route) => {
     if (!route.startDate || !route.endDate)
       return { label: "Draft", color: "gray" };
@@ -379,11 +383,8 @@ const MapPage = () => {
 
   const handleSwitchMode = (mode: SidebarMode) => {
     setSidebarMode(mode);
-
-    // Clear selected place when switching modes to prevent conflicts
     setSelectedPlaceId(null);
 
-    // Auto-switch to first route if going to route planning
     if (
       mode === SidebarMode.ROUTE_PLANNING &&
       !activeRouteId &&
@@ -393,7 +394,7 @@ const MapPage = () => {
     }
   };
 
-  // Get places for active route
+// Get places for active route
   const routePlaces: SavedPlace[] = React.useMemo(() => {
     if (!activeRoute) return [];
 
@@ -422,7 +423,6 @@ const MapPage = () => {
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </Head>
 
-      {/* Navigation */}
       <Navigation />
 
       {/* Hero Section */}
@@ -444,8 +444,8 @@ const MapPage = () => {
           </p>
         </div>
 
-        {/* Mode Switcher */}
-        <div className="flex justify-center gap-2 mt-4">
+        {/* Mode Switcher with Sync Indicator */}
+        <div className="flex justify-center items-center gap-2 mt-4">
           <button
             onClick={() => handleSwitchMode(SidebarMode.COUNTRY_EXPLORATION)}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
@@ -458,7 +458,7 @@ const MapPage = () => {
           </button>
           <button
             onClick={() => handleSwitchMode(SidebarMode.MY_ROUTES)}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`px-4 py-2 rounded-lg font-medium transition-colors relative ${
               sidebarMode === SidebarMode.MY_ROUTES ||
               sidebarMode === SidebarMode.ROUTE_PLANNING
                 ? "bg-yellow text-white"
@@ -466,7 +466,37 @@ const MapPage = () => {
             }`}
           >
             📋 My Routes ({routes.length})
+            {unsyncedCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                {unsyncedCount}
+              </span>
+            )}
           </button>
+
+          {/* Sync Button */}
+          {unsyncedCount > 0 && (
+            <button
+              onClick={syncAllRoutes}
+              disabled={syncing}
+              className={`px-3 py-2 rounded-lg font-medium transition-colors ${
+                syncing
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-blue-500 text-white hover:bg-blue-600"
+              }`}
+              title={`Sync ${unsyncedCount} route${
+                unsyncedCount > 1 ? "s" : ""
+              }`}
+            >
+              {syncing ? (
+                <span className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Syncing...
+                </span>
+              ) : (
+                `🔄 Sync (${unsyncedCount})`
+              )}
+            </button>
+          )}
         </div>
       </section>
 
@@ -552,7 +582,6 @@ const MapPage = () => {
               onPlaceSelect={setSelectedPlaceId}
               onRemovePlace={removePlace}
               selectedCountry={selectedCountry}
-              // Routes
               activeRoute={activeRoute}
               routes={routes}
               onSelectRoute={handleRouteSelect}
@@ -560,7 +589,6 @@ const MapPage = () => {
               onEditRoute={handleEditRoute}
               onDeleteRoute={handleDeleteRoute}
               onDuplicateRoute={duplicateRoute}
-              // Working with places in routes
               onAddPlaceToRoute={handleAddPlaceToRouteWithDay}
               onRemovePlaceFromRoute={(placeId: string) => {
                 if (activeRouteId) {
@@ -569,7 +597,6 @@ const MapPage = () => {
               }}
               onMovePlaceInRoute={handleMovePlaceInRoute}
               onOptimizeRouteDay={handleOptimizeRouteDay}
-              // Route days
               onAddDay={(routeId: string) => {
                 addDayToRoute(routeId);
               }}
@@ -578,11 +605,10 @@ const MapPage = () => {
                   removeDayFromRoute(routeId, dayNumber);
                 }
               }}
-              // Statistics and status
               onGetRouteStats={handleGetRouteStats}
               onGetRouteStatus={getRouteStatus}
               onSwitchMode={handleSwitchMode}
-              isLoading={isLoading}
+              isLoading={isLoading || !loaded}
               error={error}
             />
           </div>

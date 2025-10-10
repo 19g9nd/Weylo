@@ -2,81 +2,76 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using weylo.user.api.DTOS;
+using weylo.user.api.Requests;
 using weylo.user.api.Services.Interfaces;
-using weylo.user.DTOS;
 
 namespace weylo.user.api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize] 
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
-        private readonly ILogger<UserController> _logger;
-        public UserController(IUserService userService, ILogger<UserController> logger)
+        private readonly ICurrentUserService _currentUserService;
+
+        public UserController(IUserService userService, ICurrentUserService currentUserService)
         {
             _userService = userService;
-            _logger = logger;
+            _currentUserService = currentUserService;
         }
 
-        /// <summary>
-        /// Get information about the current authorized user
-        /// </summary>
-        /// <returns>User information</returns>
-        /// <response code="200">User information retrieved successfully</response>
-        /// <response code="401">User not authorized</response>
-        /// <response code="404">User not found</response>
         [HttpGet("me")]
-        [Authorize]
-        [ProducesResponseType(typeof(object), 200)]
-        [ProducesResponseType(typeof(object), 401)]
-        [ProducesResponseType(typeof(object), 404)]
         public async Task<IActionResult> GetCurrentUser()
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+            try
+            {
+                var userId = _currentUserService.UserId;
+                var user = await _userService.GetUserByIdAsync(userId);
+
+                if (user == null)
+                {
+                    return NotFound(new { error = "User not found" });
+                }
+
+                return Ok(new
+                {
+                    data = new UserResponseDto
+                    {
+                        Id = user.Id,
+                        Email = user.Email,
+                        Username = user.Username,
+                        Role = user.Role,
+                        IsEmailVerified = user.IsEmailVerified,
+                        CreatedAt = user.CreatedAt
+                    }
+                });
+            }
+            catch (UnauthorizedAccessException)
             {
                 return Unauthorized();
             }
-
-            var user = await _userService.GetUserByIdAsync(userId);
-
-            if (user == null)
-            {
-                return NotFound(new { error = "User not found" });
-            }
-
-            return Ok(new
-            {
-                data = new UserResponseDto
-                {
-                    Id = user.Id,
-                    Email = user.Email,
-                    Username = user.Username,
-                    Role = user.Role,
-                    IsEmailVerified = user.IsEmailVerified,
-                    CreatedAt = user.CreatedAt
-                }
-            });
         }
 
-        [HttpPatch("change-username")]
-        public async Task<IActionResult> ChangeUsername([FromBody] ChangeUsernameDto changeRequest)
+        [HttpPut("username")]
+        public async Task<IActionResult> ChangeUsername([FromBody] ChangeUsernameRequest request)
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+            try
+            {
+                var userId = _currentUserService.UserId;
+                var result = await _userService.ChangeUsernameAsync(userId, request.NewUsername);
+
+                if (!result)
+                {
+                    return BadRequest(new { error = "Username is already taken" });
+                }
+
+                return Ok(new { message = "Username updated successfully" });
+            }
+            catch (UnauthorizedAccessException)
             {
                 return Unauthorized();
             }
-
-            var result = await _userService.ChangeUsernameAsync(userId, changeRequest.NewUsername);
-
-            if (!result)
-            {
-                return BadRequest(new { error = "Username change failed. It might be already taken." });
-            }
-
-            return Ok(new { message = "Username changed successfully" });
         }
     }
 }

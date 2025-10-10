@@ -1,6 +1,7 @@
 import { useMapsLibrary } from "@vis.gl/react-google-maps";
 import { useEffect, useRef, useState } from "react";
 import { SupportedCountry } from "../types/country";
+import { useDebounce } from "./useDebounce";
 
 export type UseAutocompleteSuggestionsReturn = {
   suggestions: google.maps.places.AutocompleteSuggestion[];
@@ -24,6 +25,7 @@ export function useAutocompleteSuggestions(
 
   const [isLoading, setIsLoading] = useState(false);
 
+  const debouncedInput = useDebounce(inputString, 300);
   useEffect(() => {
     if (!placesLib) return;
 
@@ -31,6 +33,10 @@ export function useAutocompleteSuggestions(
 
     if (!sessionTokenRef.current) {
       sessionTokenRef.current = new AutocompleteSessionToken();
+    }
+    if (debouncedInput.length < 2) {
+      if (suggestions.length > 0) setSuggestions([]);
+      return;
     }
 
     // Build the request with country restrictions

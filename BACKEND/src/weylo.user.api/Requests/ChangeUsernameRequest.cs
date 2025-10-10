@@ -1,10 +1,12 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace weylo.user.api.DTOS
+namespace weylo.user.api.Requests
 {
-    public class ChangeUsernameDto
+    public class ChangeUsernameRequest
     {
         [Required]
+        [MinLength(3)]
+        [MaxLength(50)]
         public string NewUsername { get; set; } = string.Empty;
     }
 }

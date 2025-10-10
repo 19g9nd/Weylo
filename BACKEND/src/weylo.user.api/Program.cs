@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using weylo.shared.Configuration;
@@ -7,7 +8,10 @@ using weylo.user.api.Services;
 using weylo.user.api.Services.Interfaces;
 using System.Reflection;
 using weylo.user.api.Controllers.Data;
-using Microsoft.EntityFrameworkCore;
+using weylo.user.api.Mappings;
+using weylo.shared.Services.Interfaces;
+using weylo.shared.Services;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,7 +54,6 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 
-    // XML docs (optional, if enabled in .csproj)
     var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFilename);
     if (File.Exists(xmlPath))
@@ -65,13 +68,16 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddDbContext<UserDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("PSQL")));
 
-// JWT auth (validate tokens issued by identity service)
+// JWT Configuration
 var jwtSettingsSection = builder.Configuration.GetSection("JwtSettings");
 builder.Services.Configure<JwtSettings>(jwtSettingsSection);
 
 var jwtSettings = jwtSettingsSection.Get<JwtSettings>()
     ?? throw new InvalidOperationException("JWT settings not configured");
 var key = Encoding.ASCII.GetBytes(jwtSettings.Key);
+
+builder.Services.AddSingleton(jwtSettings);
+builder.Services.AddScoped<IJwtService, JwtService>();
 
 builder.Services.AddAuthentication(options =>
 {
@@ -91,12 +97,38 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidAudience = jwtSettings.Audience,
         ValidateLifetime = true,
-        ClockSkew = TimeSpan.Zero
+        ClockSkew = TimeSpan.Zero,
+        NameClaimType = ClaimTypes.Name,
+        RoleClaimType = ClaimTypes.Role,
+    };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = context =>
+        {
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogInformation("✅ JWT Token validated in User API");
+            return Task.CompletedTask;
+        },
+        OnAuthenticationFailed = context =>
+        {
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogError(context.Exception, "❌ JWT Authentication failed in User API");
+            return Task.CompletedTask;
+        }
     };
 });
 
 // Register app services
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddAutoMapper(cfg =>
+{
+    cfg.AddProfile<MappingProfile>();
+});
+builder.Services.AddScoped<IDestinationService, DestinationService>();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IRouteService, RouteService>();
 
 // CORS
 builder.Services.AddCors(options =>
@@ -141,7 +173,7 @@ app.UseSwaggerUI(c =>
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 
-app.UseAuthentication(); // Validate JWTs
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

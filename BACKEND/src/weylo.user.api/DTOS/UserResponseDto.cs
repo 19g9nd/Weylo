@@ -1,4 +1,4 @@
-namespace weylo.user.DTOS
+namespace weylo.user.api.DTOS
 {
     public class UserResponseDto
     {

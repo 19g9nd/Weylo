@@ -1,4 +1,4 @@
-import { Route, RoutePlace, RouteDay } from "../types/sidebar";
+import { Route, RoutePlace, RouteDay, BackendRoute } from "../types/sidebar";
 
 /**
  * Group route places by day number
@@ -188,6 +188,43 @@ export function importRoute(json: string): Route | null {
     return null;
   }
 }
+
+export const convertBackendToRoute = (backendRoute: BackendRoute): Route => ({
+  id: `route_${backendRoute.id}`, //localstorage ID
+  backendId: backendRoute.id,
+  userId: backendRoute.userId?.toString(),
+  name: backendRoute.name,
+  startDate: new Date(backendRoute.startDate),
+  endDate: new Date(backendRoute.endDate),
+  status: backendRoute.status,
+  notes: backendRoute.notes || undefined,
+  places: [],
+  createdAt: new Date(backendRoute.createdAt),
+  updatedAt: new Date(backendRoute.updatedAt),
+  isSynced: true,
+});
+
+export const convertRouteToBackendCreate = (
+  route: Route,
+  userId: number
+): Omit<BackendRoute, "id" | "createdAt" | "updatedAt"> => ({
+  name: route.name,
+  userId: userId,
+  startDate: route.startDate?.toISOString() || new Date().toISOString(),
+  endDate: route.endDate?.toISOString() || new Date().toISOString(),
+  status: route.status || "draft",
+  notes: route.notes,
+});
+
+export const convertRouteToBackendUpdate = (
+  route: Route
+): Partial<Omit<BackendRoute, "id" | "createdAt" | "updatedAt">> => ({
+  name: route.name,
+  startDate: route.startDate?.toISOString(),
+  endDate: route.endDate?.toISOString(),
+  status: route.status,
+  notes: route.notes,
+});
 
 /**
  * Generate route summary text

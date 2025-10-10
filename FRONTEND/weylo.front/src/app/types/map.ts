@@ -1,5 +1,5 @@
 export interface SavedPlace {
-  backendId?: number; // Backend database ID
+  backendId?: number;
   placeId: string;
   location: { lat: number; lng: number };
   displayName?: string;

@@ -169,7 +169,7 @@
             ]
         },
         {
-            "DownstreamPathTemplate": "/api/Destinations/my",
+            "DownstreamPathTemplate": "/api/Destinations/catalogue",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
@@ -177,12 +177,12 @@
                     "Port": 81
                 }
             ],
-            "UpstreamPathTemplate": "/api/user/destinations/my",
+            "UpstreamPathTemplate": "/api/user/destinations/catalogue",
             "UpstreamHttpMethod": [
                 "GET"
             ]
         },
-         {
+        {
             "DownstreamPathTemplate": "/api/Destinations/{destinationId}",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
@@ -194,6 +194,132 @@
             "UpstreamPathTemplate": "/api/user/destinations/{destinationId}",
             "UpstreamHttpMethod": [
                 "DELETE"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Route",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/user/routes",
+            "UpstreamHttpMethod": [
+                "GET"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Route/{id}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/user/routes/{id}",
+            "UpstreamHttpMethod": [
+                "GET"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Route",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/user/routes",
+            "UpstreamHttpMethod": [
+                "POST"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Route/{id}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/user/routes/{id}",
+            "UpstreamHttpMethod": [
+                "PUT"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Route/{id}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/user/routes/{id}",
+            "UpstreamHttpMethod": [
+                "DELETE"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Route/{routeId}/destinations",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/user/routes/{routeId}/destinations",
+            "UpstreamHttpMethod": [
+                "POST"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Route/{routeId}/destinations/{destinationId}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/user/routes/{routeId}/destinations/{destinationId}",
+            "UpstreamHttpMethod": [
+                "DELETE"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Route/destinations/{routeDestinationId}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/user/routes/destinations/{routeDestinationId}",
+            "UpstreamHttpMethod": [
+                "PUT"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Route/{routeId}/destinations/reorder",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/user/routes/{routeId}/destinations/reorder",
+            "UpstreamHttpMethod": [
+                "PUT"
             ]
         },
         {
