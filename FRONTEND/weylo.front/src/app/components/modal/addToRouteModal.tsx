@@ -127,7 +127,7 @@ const AddToRouteModal: React.FC<AddToRouteModalProps> = ({
                           {route.name}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {route.places.length} мест
+                          {route.places.length} places
                         </p>
                       </div>
                     </label>

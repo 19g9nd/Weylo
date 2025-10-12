@@ -6,6 +6,7 @@ namespace weylo.user.api.Services.Interfaces
     public interface IDestinationService
     {
         Task<DestinationDto> GetDestinationAsync(int id);
+        Task<IEnumerable<DestinationDto>> GetUserDestinationsAsync();
         Task<IEnumerable<DestinationDto>> GetDestinationsAsync();
         Task<DestinationDto> SavePlaceAsync(SavePlaceRequest request);
         Task<bool> DeleteDestinationAsync(int id);

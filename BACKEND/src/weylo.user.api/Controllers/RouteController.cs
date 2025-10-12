@@ -27,7 +27,7 @@ namespace weylo.user.api.Controllers
             try
             {
                 var routes = await _routeService.GetUserRoutesAsync();
-                return Ok(new { data = routes });
+                return Ok(routes);
             }
             catch (UnauthorizedAccessException ex)
             {
@@ -49,7 +49,7 @@ namespace weylo.user.api.Controllers
             try
             {
                 var route = await _routeService.GetRouteDetailsAsync(id);
-                return Ok(new { data = route });
+                return Ok(route);
             }
             catch (BadHttpRequestException ex)
             {
@@ -104,7 +104,7 @@ namespace weylo.user.api.Controllers
                 }
 
                 var route = await _routeService.UpdateRouteAsync(id, request);
-                return Ok(new { data = route });
+                return Ok(route);
             }
             catch (BadHttpRequestException ex)
             {
@@ -159,7 +159,7 @@ namespace weylo.user.api.Controllers
                 }
 
                 var routeDestination = await _routeService.AddDestinationToRouteAsync(routeId, request);
-                return Ok(new { data = routeDestination });
+                return Ok(routeDestination);
             }
             catch (BadHttpRequestException ex)
             {
@@ -214,7 +214,7 @@ namespace weylo.user.api.Controllers
                 }
 
                 var routeDestination = await _routeService.UpdateRouteDestinationAsync(routeDestinationId, request);
-                return Ok(new { data = routeDestination });
+                return Ok(routeDestination);
             }
             catch (BadHttpRequestException ex)
             {

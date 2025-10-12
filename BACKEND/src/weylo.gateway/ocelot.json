@@ -183,6 +183,20 @@
             ]
         },
         {
+           "DownstreamPathTemplate": "/api/Destinations/my",
+           "DownstreamScheme": "http",
+           "DownstreamHostAndPorts": [
+               {
+                   "Host": "user_api",
+                   "Port": 81
+               }
+           ],
+           "UpstreamPathTemplate": "/api/user/destinations/my",
+           "UpstreamHttpMethod": [
+               "GET"
+           ]
+       },
+        {
             "DownstreamPathTemplate": "/api/Destinations/{destinationId}",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [

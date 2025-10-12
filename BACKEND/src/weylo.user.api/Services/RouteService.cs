@@ -29,7 +29,7 @@ namespace weylo.user.api.Services
             var route = _mapper.Map<UserRoute>(request);
             route.CreatedAt = DateTime.UtcNow;
             route.UpdatedAt = DateTime.UtcNow;
-            route.UserId = _currentUserService.UserId; 
+            route.UserId = _currentUserService.UserId;
 
             await _context.UserRoutes.AddAsync(route);
             await _context.SaveChangesAsync();
@@ -41,36 +41,52 @@ namespace weylo.user.api.Services
         {
             var userId = _currentUserService.UserId;
 
+            // Проверяем существование маршрута
             var route = await _context.UserRoutes
                 .FirstOrDefaultAsync(r => r.Id == routeId && r.UserId == userId);
 
             if (route == null)
                 throw new BadHttpRequestException($"Route with id {routeId} not found");
 
+            // Проверяем существование места
             var destination = await _context.Destinations
                 .FirstOrDefaultAsync(d => d.Id == request.DestinationId);
 
             if (destination == null)
                 throw new BadHttpRequestException($"Destination with id {request.DestinationId} not found");
 
+            // Проверяем, не добавлено ли уже это место
             var existingDestination = await _context.RouteDestinations
                 .FirstOrDefaultAsync(rd => rd.UserRouteId == routeId && rd.DestinationId == request.DestinationId);
 
             if (existingDestination != null)
                 throw new BadHttpRequestException($"Destination already exists in this route");
 
+            // ИСПРАВЛЕНИЕ: Автоматически определяем порядок
+            var maxOrder = await _context.RouteDestinations
+                .Where(rd => rd.UserRouteId == routeId)
+                .MaxAsync(rd => (int?)rd.Order) ?? 0;
+
             var routeDestination = _mapper.Map<RouteDestination>(request);
             routeDestination.UserRouteId = routeId;
+            // Если request.Order равен 0 (не задан), используем следующий порядковый номер, иначе — переданный
+            routeDestination.Order = request.Order == 0 ? (maxOrder + 1) : request.Order;
             routeDestination.CreatedAt = DateTime.UtcNow;
 
             await _context.RouteDestinations.AddAsync(routeDestination);
+
+            // Обновляем дату изменения маршрута
+            route.UpdatedAt = DateTime.UtcNow;
+
             await _context.SaveChangesAsync();
 
+            // Загружаем связанные данные
             await _context.Entry(routeDestination)
                 .Reference(rd => rd.Destination)
                 .Query()
                 .Include(d => d.Category)
                 .Include(d => d.City)
+                    .ThenInclude(c => c.Country)
                 .LoadAsync();
 
             return _mapper.Map<RouteDestinationDto>(routeDestination);
@@ -81,12 +97,13 @@ namespace weylo.user.api.Services
             var userId = _currentUserService.UserId;
 
             var route = await _context.UserRoutes
-                .Include(r => r.RouteDestinations)
+                .Include(r => r.RouteDestinations.OrderBy(rd => rd.Order))
                     .ThenInclude(rd => rd.Destination)
                     .ThenInclude(d => d.Category)
                 .Include(r => r.RouteDestinations)
                     .ThenInclude(rd => rd.Destination)
                     .ThenInclude(d => d.City)
+                    .ThenInclude(c => c.Country)
                 .FirstOrDefaultAsync(r => r.Id == routeId && r.UserId == userId);
 
             if (route == null)
@@ -98,10 +115,11 @@ namespace weylo.user.api.Services
         public async Task<IEnumerable<RouteDto>> GetUserRoutesAsync()
         {
             var userId = _currentUserService.UserId;
+
             var routes = await _context.UserRoutes
                 .Where(r => r.UserId == userId)
                 .Include(r => r.RouteDestinations)
-                .OrderByDescending(r => r.UpdatedAt) 
+                .OrderByDescending(r => r.UpdatedAt)
                 .ToListAsync();
 
             return _mapper.Map<IEnumerable<RouteDto>>(routes);
@@ -117,6 +135,7 @@ namespace weylo.user.api.Services
             if (route == null)
                 return false;
 
+            // RouteDestinations удалятся автоматически благодаря Cascade
             _context.UserRoutes.Remove(route);
             await _context.SaveChangesAsync();
             return true;
@@ -138,7 +157,22 @@ namespace weylo.user.api.Services
             if (routeDestination == null)
                 return false;
 
+            var removedOrder = routeDestination.Order;
+
             _context.RouteDestinations.Remove(routeDestination);
+
+            // ИСПРАВЛЕНИЕ: Пересчитываем порядок для оставшихся мест
+            var remainingDestinations = await _context.RouteDestinations
+                .Where(rd => rd.UserRouteId == routeId && rd.Order > removedOrder)
+                .ToListAsync();
+
+            foreach (var rd in remainingDestinations)
+            {
+                rd.Order--;
+            }
+
+            route.UpdatedAt = DateTime.UtcNow;
+
             await _context.SaveChangesAsync();
             return true;
         }
@@ -154,12 +188,20 @@ namespace weylo.user.api.Services
             if (route == null)
                 return false;
 
-            foreach (var destination in route.RouteDestinations)
+            // ИСПРАВЛЕНИЕ: Проверяем, что все ID существуют в маршруте
+            var routeDestinationIds = route.RouteDestinations.Select(rd => rd.DestinationId).ToHashSet();
+            if (destinationOrder.Any(id => !routeDestinationIds.Contains(id)))
+                return false;
+
+            // Обновляем порядок
+            for (int i = 0; i < destinationOrder.Count; i++)
             {
-                var newOrder = destinationOrder.IndexOf(destination.DestinationId);
-                if (newOrder != -1)
+                var destination = route.RouteDestinations
+                    .FirstOrDefault(rd => rd.DestinationId == destinationOrder[i]);
+
+                if (destination != null)
                 {
-                    destination.Order = newOrder + 1; // +1 если порядок начинается с 1
+                    destination.Order = i + 1; // Порядок начинается с 1
                 }
             }
 
@@ -173,12 +215,14 @@ namespace weylo.user.api.Services
             var userId = _currentUserService.UserId;
 
             var route = await _context.UserRoutes
+                .Include(r => r.RouteDestinations)
                 .FirstOrDefaultAsync(r => r.Id == routeId && r.UserId == userId);
 
             if (route == null)
                 throw new BadHttpRequestException($"Route with id {routeId} not found");
 
-            if (!string.IsNullOrEmpty(request.Name))
+            // ИСПРАВЛЕНИЕ: Используем более чистый подход к обновлению
+            if (!string.IsNullOrWhiteSpace(request.Name))
                 route.Name = request.Name;
 
             if (request.StartDate.HasValue)
@@ -187,10 +231,10 @@ namespace weylo.user.api.Services
             if (request.EndDate.HasValue)
                 route.EndDate = request.EndDate.Value;
 
-            if (!string.IsNullOrEmpty(request.Notes))
+            if (request.Notes != null) // Даже пустую строку можно установить
                 route.Notes = request.Notes;
 
-            if (!string.IsNullOrEmpty(request.Status))
+            if (!string.IsNullOrWhiteSpace(request.Status))
                 route.Status = request.Status;
 
             route.UpdatedAt = DateTime.UtcNow;
@@ -202,19 +246,54 @@ namespace weylo.user.api.Services
 
         public async Task<RouteDestinationDto> UpdateRouteDestinationAsync(int routeDestinationId, UpdateRouteDestinationRequest request)
         {
+            var userId = _currentUserService.UserId;
+
             var routeDestination = await _context.RouteDestinations
                 .Include(rd => rd.UserRoute)
                 .Include(rd => rd.Destination)
                     .ThenInclude(d => d.Category)
                 .Include(rd => rd.Destination)
                     .ThenInclude(d => d.City)
-                .FirstOrDefaultAsync(rd => rd.Id == routeDestinationId && rd.UserRoute.UserId == _currentUserService.UserId);
+                    .ThenInclude(c => c.Country)
+                .FirstOrDefaultAsync(rd => rd.Id == routeDestinationId && rd.UserRoute.UserId == userId);
 
             if (routeDestination == null)
                 throw new BadHttpRequestException($"Route destination with id {routeDestinationId} not found");
 
+            // ИСПРАВЛЕНИЕ: Обновляем только предоставленные поля
             if (request.Order.HasValue)
-                routeDestination.Order = request.Order.Value;
+            {
+                var oldOrder = routeDestination.Order;
+                var newOrder = request.Order.Value;
+
+                // Если порядок изменился, нужно пересчитать порядок других элементов
+                if (oldOrder != newOrder)
+                {
+                    var otherDestinations = await _context.RouteDestinations
+                        .Where(rd => rd.UserRouteId == routeDestination.UserRouteId && rd.Id != routeDestinationId)
+                        .ToListAsync();
+
+                    // Сдвигаем элементы между старой и новой позицией
+                    if (newOrder < oldOrder)
+                    {
+                        // Перемещение вверх - сдвигаем вниз элементы между новой и старой позицией
+                        foreach (var rd in otherDestinations.Where(rd => rd.Order >= newOrder && rd.Order < oldOrder))
+                        {
+                            rd.Order++;
+                        }
+                    }
+                    else
+                    {
+                        // Перемещение вниз - сдвигаем вверх элементы между старой и новой позицией
+                        foreach (var rd in otherDestinations.Where(rd => rd.Order > oldOrder && rd.Order <= newOrder))
+                        {
+                            rd.Order--;
+                        }
+                    }
+
+                    routeDestination.Order = newOrder;
+                }
+            }
 
             if (request.PlannedVisitDate.HasValue)
                 routeDestination.PlannedVisitDate = request.PlannedVisitDate.Value;
@@ -228,6 +307,8 @@ namespace weylo.user.api.Services
             if (request.IsVisited.HasValue)
             {
                 routeDestination.IsVisited = request.IsVisited.Value;
+
+                // Автоматически устанавливаем дату посещения
                 if (request.IsVisited.Value && !routeDestination.ActualVisitDate.HasValue)
                     routeDestination.ActualVisitDate = DateTime.UtcNow;
                 else if (!request.IsVisited.Value)
@@ -237,9 +318,107 @@ namespace weylo.user.api.Services
             if (request.ActualVisitDate.HasValue)
                 routeDestination.ActualVisitDate = request.ActualVisitDate.Value;
 
+            // Обновляем дату изменения маршрута
+            routeDestination.UserRoute.UpdatedAt = DateTime.UtcNow;
+
             await _context.SaveChangesAsync();
 
             return _mapper.Map<RouteDestinationDto>(routeDestination);
         }
+
+        // ИСПРАВЛЕНИЕ: Новый метод - получить статистику маршрута
+        public async Task<RouteStatisticsDto> GetRouteStatisticsAsync(int routeId)
+        {
+            var userId = _currentUserService.UserId;
+
+            var route = await _context.UserRoutes
+                .Include(r => r.RouteDestinations)
+                .FirstOrDefaultAsync(r => r.Id == routeId && r.UserId == userId);
+
+            if (route == null)
+                throw new BadHttpRequestException($"Route with id {routeId} not found");
+
+            var statistics = new RouteStatisticsDto
+            {
+                TotalDestinations = route.RouteDestinations.Count,
+                VisitedDestinations = route.RouteDestinations.Count(rd => rd.IsVisited),
+                PlannedDestinations = route.RouteDestinations.Count(rd => !rd.IsVisited),
+                TotalEstimatedDuration = route.RouteDestinations
+                    .Where(rd => rd.EstimatedDuration.HasValue)
+                    .Sum(rd => rd.EstimatedDuration!.Value.TotalMinutes),
+                DaysUntilStart = route.StartDate > DateTime.UtcNow
+                    ? (int)(route.StartDate - DateTime.UtcNow).TotalDays
+                    : 0,
+                TripDuration = (int)(route.EndDate - route.StartDate).TotalDays + 1
+            };
+
+            return statistics;
+        }
+
+        // ИСПРАВЛЕНИЕ: Новый метод - дублировать маршрут
+        public async Task<RouteDto> DuplicateRouteAsync(int routeId)
+        {
+            var userId = _currentUserService.UserId;
+
+            var originalRoute = await _context.UserRoutes
+                .Include(r => r.RouteDestinations)
+                .FirstOrDefaultAsync(r => r.Id == routeId && r.UserId == userId);
+
+            if (originalRoute == null)
+                throw new BadHttpRequestException($"Route with id {routeId} not found");
+
+            var newRoute = new UserRoute
+            {
+                Name = $"{originalRoute.Name} (Copy)",
+                UserId = userId,
+                StartDate = originalRoute.StartDate,
+                EndDate = originalRoute.EndDate,
+                Notes = originalRoute.Notes,
+                Status = "Draft",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            await _context.UserRoutes.AddAsync(newRoute);
+            await _context.SaveChangesAsync();
+
+            // Копируем все места из оригинального маршрута
+            foreach (var rd in originalRoute.RouteDestinations.OrderBy(rd => rd.Order))
+            {
+                var newRouteDestination = new RouteDestination
+                {
+                    UserRouteId = newRoute.Id,
+                    DestinationId = rd.DestinationId,
+                    Order = rd.Order,
+                    PlannedVisitDate = rd.PlannedVisitDate,
+                    EstimatedDuration = rd.EstimatedDuration,
+                    UserNotes = rd.UserNotes,
+                    IsVisited = false,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                await _context.RouteDestinations.AddAsync(newRouteDestination);
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Загружаем новый маршрут с destinations
+            newRoute = await _context.UserRoutes
+                .Include(r => r.RouteDestinations)
+                .FirstAsync(r => r.Id == newRoute.Id);
+
+            return _mapper.Map<RouteDto>(newRoute);
+        }
+    }
+
+    // ИСПРАВЛЕНИЕ: Новый DTO для статистики
+    public class RouteStatisticsDto
+    {
+        public int TotalDestinations { get; set; }
+        public int VisitedDestinations { get; set; }
+        public int PlannedDestinations { get; set; }
+        public double TotalEstimatedDuration { get; set; } // в минутах
+        public int DaysUntilStart { get; set; }
+        public int TripDuration { get; set; } // в днях
     }
 }

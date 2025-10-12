@@ -24,10 +24,26 @@ namespace weylo.user.api.Services
         public async Task<DestinationDto> SavePlaceAsync(SavePlaceRequest request)
         {
             var existingDestination = await _context.Destinations
+                .Include(d => d.Category)
+                .Include(d => d.City)
+                    .ThenInclude(c => c.Country)
                 .FirstOrDefaultAsync(d => d.GooglePlaceId == request.GooglePlaceId);
 
             if (existingDestination != null)
+            {
+                if (!existingDestination.CacheUpdatedAt.HasValue || 
+                    (DateTime.UtcNow - existingDestination.CacheUpdatedAt.Value).TotalDays > 7)
+                {
+                    existingDestination.CachedDescription = request.Description;
+                    existingDestination.CachedRating = request.Rating;
+                    existingDestination.CachedImageUrl = request.ImageUrl;
+                    existingDestination.CachedAddress = request.Address;
+                    existingDestination.CacheUpdatedAt = DateTime.UtcNow;
+                    await _context.SaveChangesAsync();
+                }
+                
                 return _mapper.Map<DestinationDto>(existingDestination);
+            }
 
             var normalizedCountryName = request.CountryName.Trim();
             var country = await _context.Countries
@@ -52,11 +68,14 @@ namespace weylo.user.api.Services
 
             if (city == null)
             {
-                var cities = await _context.Cities
+                var nearbyCities = await _context.Cities
                     .Where(c => c.CountryId == country.Id)
+                    .Where(c => 
+                        Math.Abs(c.Latitude - request.Latitude) < 0.1m &&
+                        Math.Abs(c.Longitude - request.Longitude) < 0.1m)
                     .ToListAsync();
 
-                city = cities.FirstOrDefault(c =>
+                city = nearbyCities.FirstOrDefault(c =>
                     CalculateDistance(c.Latitude, c.Longitude, request.Latitude, request.Longitude) < 10.0m);
 
                 if (city == null)
@@ -74,6 +93,7 @@ namespace weylo.user.api.Services
                 }
             }
 
+            // Создаем или находим категорию
             var categoryName = MapGoogleTypeToCategory(request.GoogleType);
             var category = await _context.Categories
                 .FirstOrDefaultAsync(c => c.Name == categoryName);
@@ -93,10 +113,20 @@ namespace weylo.user.api.Services
             var destination = _mapper.Map<Destination>(request);
             destination.CityId = city.Id;
             destination.CategoryId = category.Id;
-
+            destination.CreatedAt = DateTime.UtcNow;
 
             _context.Destinations.Add(destination);
             await _context.SaveChangesAsync();
+
+            await _context.Entry(destination)
+                .Reference(d => d.Category)
+                .LoadAsync();
+            await _context.Entry(destination)
+                .Reference(d => d.City)
+                .LoadAsync();
+            await _context.Entry(destination.City)
+                .Reference(c => c.Country)
+                .LoadAsync();
 
             return _mapper.Map<DestinationDto>(destination);
         }
@@ -129,7 +159,7 @@ namespace weylo.user.api.Services
             var destination = await _context.Destinations.FindAsync(id);
             if (destination == null) return false;
 
-            var isUsedInRoutes = await _context.Set<RouteDestination>()
+            var isUsedInRoutes = await _context.RouteDestinations
                 .AnyAsync(rd => rd.DestinationId == id);
 
             if (isUsedInRoutes) return false;
@@ -139,10 +169,31 @@ namespace weylo.user.api.Services
             return true;
         }
 
+        public async Task<IEnumerable<DestinationDto>> GetUserDestinationsAsync()
+        {
+            var userId = _currentUserService.UserId;
+
+            var destinations = await _context.RouteDestinations
+                .Where(rd => rd.UserRoute.UserId == userId)
+                .Include(rd => rd.Destination)
+                    .ThenInclude(d => d.City)
+                    .ThenInclude(c => c.Country)
+                .Include(rd => rd.Destination)
+                    .ThenInclude(d => d.Category)
+                .Select(rd => rd.Destination)
+                .Distinct()
+                .OrderByDescending(d => d.CachedRating)
+                .ToListAsync();
+
+            return _mapper.Map<IEnumerable<DestinationDto>>(destinations);
+        }
+
         public async Task<IEnumerable<DestinationDto>> GetDestinationsByCityAsync(int cityId)
         {
             var destinations = await _context.Destinations
                 .Include(d => d.Category)
+                .Include(d => d.City)
+                    .ThenInclude(c => c.Country)
                 .Where(d => d.CityId == cityId)
                 .OrderByDescending(d => d.CachedRating)
                 .ToListAsync();
@@ -161,7 +212,8 @@ namespace weylo.user.api.Services
                 .Where(d =>
                     d.Name.ToLower().Contains(searchTerm) ||
                     d.CachedAddress.ToLower().Contains(searchTerm) ||
-                    d.City.Name.ToLower().Contains(searchTerm))
+                    d.City.Name.ToLower().Contains(searchTerm) ||
+                    d.City.Country.Name.ToLower().Contains(searchTerm))
                 .OrderByDescending(d => d.CachedRating)
                 .Take(50)
                 .ToListAsync();
@@ -171,7 +223,12 @@ namespace weylo.user.api.Services
 
         public async Task<DestinationDto> UpdateDestinationCacheAsync(int id, UpdateCacheRequest request)
         {
-            var destination = await _context.Destinations.FindAsync(id);
+            var destination = await _context.Destinations
+                .Include(d => d.City)
+                    .ThenInclude(c => c.Country)
+                .Include(d => d.Category)
+                .FirstOrDefaultAsync(d => d.Id == id);
+
             if (destination == null) return null;
 
             destination.CachedDescription = request.Description;
@@ -185,7 +242,22 @@ namespace weylo.user.api.Services
             return _mapper.Map<DestinationDto>(destination);
         }
 
-        // --- helpers ---
+        public async Task<IEnumerable<DestinationDto>> GetPopularDestinationsAsync(int take = 20)
+        {
+            var destinations = await _context.Destinations
+                .Include(d => d.City)
+                    .ThenInclude(c => c.Country)
+                .Include(d => d.Category)
+                .Where(d => d.CachedRating.HasValue)
+                .OrderByDescending(d => d.CachedRating)
+                .ThenByDescending(d => d.RouteDestinations.Count)
+                .Take(take)
+                .ToListAsync();
+
+            return _mapper.Map<IEnumerable<DestinationDto>>(destinations);
+        }
+
+        // --- Helpers ---
         private string NormalizeCityName(string name)
         {
             var unifiedNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -207,10 +279,14 @@ namespace weylo.user.api.Services
             {
                 { "Azerbaijan", "AZ" },
                 { "United States", "US" },
+                { "United Kingdom", "GB" },
                 { "Italy", "IT" },
                 { "France", "FR" },
+                { "Spain", "ES" },
+                { "Germany", "DE" },
                 { "Turkey", "TR" },
-                { "Russia", "RU" }
+                { "Russia", "RU" },
+                { "Georgia", "GE" }
             };
             return countryCodes.GetValueOrDefault(countryName, "XX");
         }
@@ -220,16 +296,25 @@ namespace weylo.user.api.Services
             var categoryMapping = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
                 { "museum", "Culture" },
+                { "art_gallery", "Culture" },
                 { "restaurant", "Food & Drink" },
+                { "cafe", "Food & Drink" },
+                { "bar", "Food & Drink" },
                 { "park", "Nature & Parks" },
-                { "shopping_mall", "Shopping" }
+                { "natural_feature", "Nature & Parks" },
+                { "shopping_mall", "Shopping" },
+                { "store", "Shopping" },
+                { "tourist_attraction", "Attractions" },
+                { "point_of_interest", "Attractions" },
+                { "lodging", "Accommodation" },
+                { "hotel", "Accommodation" }
             };
             return categoryMapping.GetValueOrDefault(googleType ?? "general", "General");
         }
 
         private decimal CalculateDistance(decimal lat1, decimal lon1, decimal lat2, decimal lon2)
         {
-            const decimal R = 6371.0m;
+            const decimal R = 6371.0m; // Earth radius in km
             var dLat = (lat2 - lat1) * (decimal)Math.PI / 180.0m;
             var dLon = (lon2 - lon1) * (decimal)Math.PI / 180.0m;
 

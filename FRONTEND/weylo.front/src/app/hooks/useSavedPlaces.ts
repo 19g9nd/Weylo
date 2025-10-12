@@ -42,7 +42,7 @@ export const useSavedPlaces = () => {
       setError(null);
 
       try {
-        const apiResult = await placesService.getMyPlaces();
+        const apiResult = await placesService.getPlaces();
 
         if (apiResult.success && apiResult.data) {
           setPlaces(apiResult.data);

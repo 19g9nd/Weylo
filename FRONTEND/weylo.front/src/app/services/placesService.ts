@@ -1,3 +1,4 @@
+// services/placesService.ts
 import { BackendPlace, SavedPlace } from "../types/map";
 import { ApiResponse } from "../types/shared";
 import httpClient from "./httpClient";
@@ -57,6 +58,46 @@ export const placesService = {
     );
   },
 
+  async getPlaces(): Promise<ApiResponse<SavedPlace[]>> {
+    const response = await httpClient.get<BackendPlace[]>(
+      "/api/user/destinations/catalogue"
+    );
+
+    if (!response.success || !response.data) {
+      return {
+        success: false,
+        error: response.error || "Failed to fetch places",
+      };
+    }
+
+    const places: SavedPlace[] = response.data.map((bp) => ({
+      placeId: bp.googlePlaceId,
+      backendId: bp.id,
+      displayName: bp.name,
+      formattedAddress: bp.cachedAddress || "",
+      location: {
+        lat: bp.latitude,
+        lng: bp.longitude,
+      },
+      rating: bp.cachedRating,
+      photos: bp.cachedImageUrl
+        ? [
+            {
+              getURI: () => bp.cachedImageUrl,
+            } as google.maps.places.Photo,
+          ]
+        : undefined,
+      types: bp.googleType
+        ? [bp.googleType]
+        : [bp.category.toLowerCase().replace(" ", "_")],
+      primaryTypeDisplayName: {
+        text: bp.category,
+      },
+    }));
+
+    return { success: true, data: places };
+  },
+
   async getMyPlaces(): Promise<ApiResponse<SavedPlace[]>> {
     const response = await httpClient.get<BackendPlace[]>(
       "/api/user/destinations/my"
@@ -69,38 +110,30 @@ export const placesService = {
       };
     }
 
-    const places: SavedPlace[] = response.data.map((bp) => {
-      const categoryName = bp.category || bp.googleType || "general";
-      const googleType = bp.googleType || "point_of_interest";
-
-      const types = googleType
-        ? [googleType]
-        : [categoryName.toLowerCase().replace(/ /g, "_")];
-
-      return {
-        placeId: bp.googlePlaceId,
-        backendId: bp.id,
-        displayName: bp.name,
-        formattedAddress: bp.cachedAddress || "",
-        location: {
-          lat: bp.latitude,
-          lng: bp.longitude,
-        },
-        rating: bp.cachedRating,
-        photos: bp.cachedImageUrl
-          ? [
-              {
-                getURI: () => bp.cachedImageUrl || "",
-              } as google.maps.places.Photo,
-            ]
-          : undefined,
-        types: types,
-        primaryTypeDisplayName: {
-          text: categoryName,
-        },
-        source: "saved" as const,
-      };
-    });
+    const places: SavedPlace[] = response.data.map((bp) => ({
+      placeId: bp.googlePlaceId,
+      backendId: bp.id,
+      displayName: bp.name,
+      formattedAddress: bp.cachedAddress || "",
+      location: {
+        lat: bp.latitude,
+        lng: bp.longitude,
+      },
+      rating: bp.cachedRating,
+      photos: bp.cachedImageUrl
+        ? [
+            {
+              getURI: () => bp.cachedImageUrl,
+            } as google.maps.places.Photo,
+          ]
+        : undefined,
+      types: bp.googleType
+        ? [bp.googleType]
+        : [bp.category.toLowerCase().replace(" ", "_")],
+      primaryTypeDisplayName: {
+        text: bp.category,
+      },
+    }));
 
     return { success: true, data: places };
   },

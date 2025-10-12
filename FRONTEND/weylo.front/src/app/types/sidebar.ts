@@ -23,7 +23,8 @@ export interface Route {
 
 export interface RoutePlace {
   placeId: string; // Google Place ID
-  bachendId?: number; // ID from backend if synced
+  backendId?: number; // ID from backend if synced
+  routeDestinationId?: number; // ID in RouteDestinations
   dayNumber: number;
   orderInDay: number;
   displayName: string;
@@ -63,24 +64,55 @@ export interface BackendRoute {
   createdAt: string;
   updatedAt: string;
 }
-
-export interface BackendRouteDestination {
+export interface BackendRouteDestinationDto {
   id: number;
   userRouteId: number;
   destinationId: number;
   order: number;
-  plannedVisitDate?: string;
-  estimatedDuration?: string;
-  userNotes?: string;
+  dayNumber: number;
+  orderInDay: number;
+  plannedVisitDate: string | null;
+  estimatedDuration: string | null;
+  userNotes: string | null;
   isVisited: boolean;
-  actualVisitDate?: string;
-  destination: {
-    id: number;
-    googlePlaceId: string;
-    name: string;
-    latitude: number;
-    longitude: number;
-    cachedAddress?: string;
-    cachedRating?: number;
-  };
+  actualVisitDate: string | null;
+  createdAt: string;
+  destination: BackendDestinationDto;
+}
+
+export interface BackendDestinationDto {
+  id: number;
+  name: string;
+  latitude: number;
+  longitude: number;
+  googlePlaceId: string;
+  cachedDescription: string | null;
+  cachedRating: number | null;
+  cachedImageUrl: string | null;
+  cachedAddress: string | null;
+  cacheUpdatedAt: string | null;
+  googleType: string;
+  categoryId: number;
+  categoryName: string | null;
+  cityId: number;
+  cityName: string | null;
+  countryName: string | null;
+  countryCode: string | null;
+  usageCount: number;
+  createdAt: string;
+}
+
+// Request types
+export interface AddDestinationToRouteRequest {
+  destinationId: number;
+  dayNumber: number;
+  orderInDay: number;
+  notes?: string;
+}
+
+export interface UpdateRouteDestinationRequest {
+  dayNumber?: number;
+  orderInDay?: number;
+  userNotes?: string;
+  isVisited?: boolean;
 }
