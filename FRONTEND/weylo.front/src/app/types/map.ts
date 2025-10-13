@@ -11,6 +11,8 @@ export interface SavedPlace {
   primaryTypeDisplayName?: { text: string };
   note?: string;
   photos?: { getURI: () => string }[];
+  category?: string;
+  categoryValue?: string;
 }
 
 export interface PlaceData extends SavedPlace {

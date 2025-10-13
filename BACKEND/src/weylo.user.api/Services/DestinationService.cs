@@ -93,7 +93,6 @@ namespace weylo.user.api.Services
                 }
             }
 
-            // Создаем или находим категорию
             var categoryName = MapGoogleTypeToCategory(request.GoogleType);
             var category = await _context.Categories
                 .FirstOrDefaultAsync(c => c.Name == categoryName);

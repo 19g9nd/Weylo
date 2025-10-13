@@ -15,9 +15,11 @@ export function useAutocompleteSuggestions(
   selectedCountry?: SupportedCountry | null
 ): UseAutocompleteSuggestionsReturn {
   const placesLib = useMapsLibrary("places");
-
-  const sessionTokenRef =
-    useRef<google.maps.places.AutocompleteSessionToken | null>(null);
+  const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null);
+  const lastRequestRef = useRef<string>("");
+  const [isRequesting, setIsRequesting] = useState(false);
+  const requestCountRef = useRef(0);
+  const MAX_REQUESTS_PER_MINUTE = 20; 
 
   const [suggestions, setSuggestions] = useState<
     google.maps.places.AutocompleteSuggestion[]
@@ -25,24 +27,36 @@ export function useAutocompleteSuggestions(
 
   const [isLoading, setIsLoading] = useState(false);
 
-  const debouncedInput = useDebounce(inputString, 300);
+  const debouncedInput = useDebounce(inputString, 800);
+
   useEffect(() => {
     if (!placesLib) return;
 
     const { AutocompleteSessionToken, AutocompleteSuggestion } = placesLib;
 
-    if (!sessionTokenRef.current) {
-      sessionTokenRef.current = new AutocompleteSessionToken();
-    }
-    if (debouncedInput.length < 2) {
+    const normalizedInput = debouncedInput?.trim().toLowerCase() || "";
+
+    if (!normalizedInput || normalizedInput.length < 3) {
       if (suggestions.length > 0) setSuggestions([]);
       return;
     }
 
-    // Build the request with country restrictions
+    if (lastRequestRef.current === normalizedInput || isRequesting) {
+      return;
+    }
+
+    if (requestCountRef.current >= MAX_REQUESTS_PER_MINUTE) {
+      console.warn('Autocomplete rate limit exceeded');
+      return;
+    }
+
+    if (!sessionTokenRef.current) {
+      sessionTokenRef.current = new AutocompleteSessionToken();
+    }
+
     const request: google.maps.places.AutocompleteRequest = {
       ...requestOptions,
-      input: inputString,
+      input: debouncedInput, 
       sessionToken: sessionTokenRef.current,
     };
 
@@ -54,35 +68,45 @@ export function useAutocompleteSuggestions(
         north: selectedCountry.northBound,
         east: selectedCountry.eastBound,
       };
-    }
-
-    if (selectedCountry) {
       request.includedRegionCodes = [selectedCountry.code.toLowerCase()];
     }
 
-    if (inputString === "") {
-      if (suggestions.length > 0) setSuggestions([]);
-      return;
-    }
-
+    lastRequestRef.current = normalizedInput;
+    requestCountRef.current++;
+    setIsRequesting(true);
     setIsLoading(true);
+
+    console.log(`🔄 Autocomplete request #${requestCountRef.current}: "${debouncedInput}"`);
+
     AutocompleteSuggestion.fetchAutocompleteSuggestions(request)
       .then((res) => {
         setSuggestions(res.suggestions);
-        setIsLoading(false);
       })
       .catch((error) => {
         console.error("Error fetching autocomplete suggestions:", error);
         setSuggestions([]);
+      })
+      .finally(() => {
         setIsLoading(false);
+        setIsRequesting(false);
+        
+        setTimeout(() => {
+          requestCountRef.current = 0;
+        }, 60000);
       });
-  }, [placesLib, inputString, selectedCountry, requestOptions]);
+  }, [
+    placesLib, 
+    debouncedInput,
+    selectedCountry?.code,
+  ]);
 
   return {
     suggestions,
     isLoading,
     resetSession: () => {
       sessionTokenRef.current = null;
+      lastRequestRef.current = "";
+      requestCountRef.current = 0;
       setSuggestions([]);
     },
   };

@@ -62,25 +62,21 @@ namespace weylo.user.api.Services
             if (existingDestination != null)
                 throw new BadHttpRequestException($"Destination already exists in this route");
 
-            // ИСПРАВЛЕНИЕ: Автоматически определяем порядок
             var maxOrder = await _context.RouteDestinations
                 .Where(rd => rd.UserRouteId == routeId)
                 .MaxAsync(rd => (int?)rd.Order) ?? 0;
 
             var routeDestination = _mapper.Map<RouteDestination>(request);
             routeDestination.UserRouteId = routeId;
-            // Если request.Order равен 0 (не задан), используем следующий порядковый номер, иначе — переданный
             routeDestination.Order = request.Order == 0 ? (maxOrder + 1) : request.Order;
             routeDestination.CreatedAt = DateTime.UtcNow;
 
             await _context.RouteDestinations.AddAsync(routeDestination);
 
-            // Обновляем дату изменения маршрута
             route.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
 
-            // Загружаем связанные данные
             await _context.Entry(routeDestination)
                 .Reference(rd => rd.Destination)
                 .Query()
@@ -161,7 +157,6 @@ namespace weylo.user.api.Services
 
             _context.RouteDestinations.Remove(routeDestination);
 
-            // ИСПРАВЛЕНИЕ: Пересчитываем порядок для оставшихся мест
             var remainingDestinations = await _context.RouteDestinations
                 .Where(rd => rd.UserRouteId == routeId && rd.Order > removedOrder)
                 .ToListAsync();
@@ -188,12 +183,10 @@ namespace weylo.user.api.Services
             if (route == null)
                 return false;
 
-            // ИСПРАВЛЕНИЕ: Проверяем, что все ID существуют в маршруте
             var routeDestinationIds = route.RouteDestinations.Select(rd => rd.DestinationId).ToHashSet();
             if (destinationOrder.Any(id => !routeDestinationIds.Contains(id)))
                 return false;
 
-            // Обновляем порядок
             for (int i = 0; i < destinationOrder.Count; i++)
             {
                 var destination = route.RouteDestinations
@@ -201,7 +194,7 @@ namespace weylo.user.api.Services
 
                 if (destination != null)
                 {
-                    destination.Order = i + 1; // Порядок начинается с 1
+                    destination.Order = i + 1;
                 }
             }
 
@@ -221,7 +214,6 @@ namespace weylo.user.api.Services
             if (route == null)
                 throw new BadHttpRequestException($"Route with id {routeId} not found");
 
-            // ИСПРАВЛЕНИЕ: Используем более чистый подход к обновлению
             if (!string.IsNullOrWhiteSpace(request.Name))
                 route.Name = request.Name;
 
@@ -260,23 +252,19 @@ namespace weylo.user.api.Services
             if (routeDestination == null)
                 throw new BadHttpRequestException($"Route destination with id {routeDestinationId} not found");
 
-            // ИСПРАВЛЕНИЕ: Обновляем только предоставленные поля
             if (request.Order.HasValue)
             {
                 var oldOrder = routeDestination.Order;
                 var newOrder = request.Order.Value;
 
-                // Если порядок изменился, нужно пересчитать порядок других элементов
                 if (oldOrder != newOrder)
                 {
                     var otherDestinations = await _context.RouteDestinations
                         .Where(rd => rd.UserRouteId == routeDestination.UserRouteId && rd.Id != routeDestinationId)
                         .ToListAsync();
 
-                    // Сдвигаем элементы между старой и новой позицией
                     if (newOrder < oldOrder)
                     {
-                        // Перемещение вверх - сдвигаем вниз элементы между новой и старой позицией
                         foreach (var rd in otherDestinations.Where(rd => rd.Order >= newOrder && rd.Order < oldOrder))
                         {
                             rd.Order++;
@@ -284,7 +272,6 @@ namespace weylo.user.api.Services
                     }
                     else
                     {
-                        // Перемещение вниз - сдвигаем вверх элементы между старой и новой позицией
                         foreach (var rd in otherDestinations.Where(rd => rd.Order > oldOrder && rd.Order <= newOrder))
                         {
                             rd.Order--;
@@ -326,7 +313,6 @@ namespace weylo.user.api.Services
             return _mapper.Map<RouteDestinationDto>(routeDestination);
         }
 
-        // ИСПРАВЛЕНИЕ: Новый метод - получить статистику маршрута
         public async Task<RouteStatisticsDto> GetRouteStatisticsAsync(int routeId)
         {
             var userId = _currentUserService.UserId;
@@ -355,7 +341,6 @@ namespace weylo.user.api.Services
             return statistics;
         }
 
-        // ИСПРАВЛЕНИЕ: Новый метод - дублировать маршрут
         public async Task<RouteDto> DuplicateRouteAsync(int routeId)
         {
             var userId = _currentUserService.UserId;
@@ -382,7 +367,6 @@ namespace weylo.user.api.Services
             await _context.UserRoutes.AddAsync(newRoute);
             await _context.SaveChangesAsync();
 
-            // Копируем все места из оригинального маршрута
             foreach (var rd in originalRoute.RouteDestinations.OrderBy(rd => rd.Order))
             {
                 var newRouteDestination = new RouteDestination
@@ -402,7 +386,6 @@ namespace weylo.user.api.Services
 
             await _context.SaveChangesAsync();
 
-            // Загружаем новый маршрут с destinations
             newRoute = await _context.UserRoutes
                 .Include(r => r.RouteDestinations)
                 .FirstAsync(r => r.Id == newRoute.Id);
@@ -411,7 +394,6 @@ namespace weylo.user.api.Services
         }
     }
 
-    // ИСПРАВЛЕНИЕ: Новый DTO для статистики
     public class RouteStatisticsDto
     {
         public int TotalDestinations { get; set; }
