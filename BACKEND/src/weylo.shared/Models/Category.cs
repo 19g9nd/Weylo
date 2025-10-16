@@ -16,11 +16,16 @@ namespace weylo.shared.Models
 
         [MaxLength(50)]
         public string? Icon { get; set; }
+        
+        public int Priority { get; set; } = 0; // Для определения приоритета при совпадении нескольких категорий
 
         // Маппинг на Google Places types (через запятую)
         [MaxLength(500)]
         public string? GoogleTypes { get; set; } = string.Empty; // "museum,tourist_attraction"
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public ICollection<CategoryFilter> CategoryFilters { get; set; } = new List<CategoryFilter>();
+        // Навигационное свойство ко всем местам этой категории
+        public virtual ICollection<Destination> Destinations { get; set; } = new List<Destination>();
     }
 }

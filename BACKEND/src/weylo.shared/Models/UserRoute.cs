@@ -30,5 +30,6 @@ namespace weylo.shared.Models
 
         // List of destinations in the route
         public ICollection<RouteDestination> RouteDestinations { get; set; } = new List<RouteDestination>();
+        public ICollection<RouteDay> RouteDays { get; set; } = new List<RouteDay>();
     }
 }

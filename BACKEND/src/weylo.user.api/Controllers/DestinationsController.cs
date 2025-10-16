@@ -42,7 +42,7 @@ namespace weylo.user.api.Controllers
         /// Get user's saved destinations
         /// </summary>
         [HttpGet("my")]
-        public async Task<ActionResult<IEnumerable<DestinationDto>>> GetMyDestinations()
+        public async Task<ActionResult<IEnumerable<UserDestinationDto>>> GetMyDestinations()
         {
             try
             {
@@ -53,6 +53,99 @@ namespace weylo.user.api.Controllers
             {
                 _logger.LogError(ex, "Error getting user destinations");
                 return StatusCode(500, new { error = "Failed to load destinations" });
+            }
+        }
+
+        /// <summary>
+        /// Add a destination to user's collection
+        /// </summary>
+        [HttpPost("my/{destinationId}")]
+        public async Task<ActionResult<UserDestinationDto>> AddToUser(int destinationId)
+        {
+            try
+            {
+                var result = await _service.AddDestinationToUserAsync(destinationId);
+                return Ok(result);
+            }
+            catch (BadHttpRequestException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding destination {DestinationId} to user", destinationId);
+                return StatusCode(500, new { error = "Failed to add destination to user" });
+            }
+        }
+
+        /// <summary>
+        /// Remove a destination from user's collection
+        /// </summary>
+        [HttpDelete("my/{destinationId}")]
+        public async Task<IActionResult> RemoveFromUser(int destinationId)
+        {
+            try
+            {
+                var removed = await _service.RemoveDestinationFromUserAsync(destinationId);
+                if (!removed)
+                    return NotFound(new { error = "Destination not found or already removed" });
+
+                return NoContent();
+            }
+            catch (BadHttpRequestException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error removing user destination {DestinationId}", destinationId);
+                return StatusCode(500, new { error = "Failed to remove destination" });
+            }
+        }
+
+        /// <summary>
+        /// Update user-specific destination data (favorites, notes)
+        /// </summary>
+        [HttpPut("my/{userDestinationId}")]
+        public async Task<ActionResult<UserDestinationDto>> UpdateUserDestination(
+            int userDestinationId,
+            [FromBody] UpdateUserDestinationRequest request)
+        {
+            try
+            {
+                var result = await _service.UpdateUserDestinationAsync(userDestinationId, request);
+                return Ok(result);
+            }
+            catch (BadHttpRequestException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating user destination {UserDestinationId}", userDestinationId);
+                return StatusCode(500, new { error = "Failed to update user destination" });
+            }
+        }
+
+        /// <summary>
+        /// Toggle favorite status for a user's destination
+        /// </summary>
+        [HttpPut("my/{userDestinationId}/favorite")]
+        public async Task<ActionResult<UserDestinationDto>> ToggleFavorite(int userDestinationId)
+        {
+            try
+            {
+                var result = await _service.ToggleFavoriteAsync(userDestinationId);
+                return Ok(result);
+            }
+            catch (BadHttpRequestException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error toggling favorite for destination {UserDestinationId}", userDestinationId);
+                return StatusCode(500, new { error = "Failed to toggle favorite" });
             }
         }
 
@@ -70,6 +163,24 @@ namespace weylo.user.api.Controllers
             {
                 _logger.LogError(ex, "Error getting destinations catalogue");
                 return StatusCode(500, new { error = "Failed to load catalogue" });
+            }
+        }
+
+        /// <summary>
+        /// Get popular destinations
+        /// </summary>
+        [HttpGet("popular")]
+        public async Task<ActionResult<IEnumerable<DestinationDto>>> GetPopular([FromQuery] int take = 20)
+        {
+            try
+            {
+                var result = await _service.GetPopularDestinationsAsync(take);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting popular destinations");
+                return StatusCode(500, new { error = "Failed to load popular destinations" });
             }
         }
 
@@ -100,7 +211,6 @@ namespace weylo.user.api.Controllers
             try
             {
                 var deleted = await _service.DeleteDestinationAsync(id);
-
                 if (!deleted)
                 {
                     return BadRequest(new

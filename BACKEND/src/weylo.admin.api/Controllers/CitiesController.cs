@@ -6,7 +6,7 @@ using weylo.shared.Models;
 namespace weylo.admin.api.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/admin/[controller]")]
     public class CitiesController : ControllerBase
     {
         private readonly AdminDbContext _context;

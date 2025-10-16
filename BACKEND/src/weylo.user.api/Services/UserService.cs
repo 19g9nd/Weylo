@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using weylo.shared.Models;
-using weylo.user.api.Controllers.Data;
+using weylo.user.api.Data;
 using weylo.user.api.Services.Interfaces;
 
 namespace weylo.user.api.Services

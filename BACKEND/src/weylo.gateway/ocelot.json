@@ -163,7 +163,7 @@
                     "Port": 81
                 }
             ],
-            "UpstreamPathTemplate": "/api/user/destinations/save",
+            "UpstreamPathTemplate": "/api/destinations/save",
             "UpstreamHttpMethod": [
                 "POST"
             ]
@@ -177,25 +177,25 @@
                     "Port": 81
                 }
             ],
-            "UpstreamPathTemplate": "/api/user/destinations/catalogue",
+            "UpstreamPathTemplate": "/api/destinations/catalogue",
             "UpstreamHttpMethod": [
                 "GET"
             ]
         },
         {
-           "DownstreamPathTemplate": "/api/Destinations/my",
-           "DownstreamScheme": "http",
-           "DownstreamHostAndPorts": [
-               {
-                   "Host": "user_api",
-                   "Port": 81
-               }
-           ],
-           "UpstreamPathTemplate": "/api/user/destinations/my",
-           "UpstreamHttpMethod": [
-               "GET"
-           ]
-       },
+            "DownstreamPathTemplate": "/api/Destinations/my",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/destinations/my",
+            "UpstreamHttpMethod": [
+                "GET"
+            ]
+        },
         {
             "DownstreamPathTemplate": "/api/Destinations/{destinationId}",
             "DownstreamScheme": "http",
@@ -205,7 +205,7 @@
                     "Port": 81
                 }
             ],
-            "UpstreamPathTemplate": "/api/user/destinations/{destinationId}",
+            "UpstreamPathTemplate": "/api/destinations/{destinationId}",
             "UpstreamHttpMethod": [
                 "DELETE"
             ]
@@ -219,7 +219,7 @@
                     "Port": 81
                 }
             ],
-            "UpstreamPathTemplate": "/api/user/routes",
+            "UpstreamPathTemplate": "/api/route",
             "UpstreamHttpMethod": [
                 "GET"
             ]
@@ -233,7 +233,7 @@
                     "Port": 81
                 }
             ],
-            "UpstreamPathTemplate": "/api/user/routes/{id}",
+            "UpstreamPathTemplate": "/api/route/{id}",
             "UpstreamHttpMethod": [
                 "GET"
             ]
@@ -247,7 +247,7 @@
                     "Port": 81
                 }
             ],
-            "UpstreamPathTemplate": "/api/user/routes",
+            "UpstreamPathTemplate": "/api/route",
             "UpstreamHttpMethod": [
                 "POST"
             ]
@@ -261,7 +261,7 @@
                     "Port": 81
                 }
             ],
-            "UpstreamPathTemplate": "/api/user/routes/{id}",
+            "UpstreamPathTemplate": "/api/route/{id}",
             "UpstreamHttpMethod": [
                 "PUT"
             ]
@@ -275,7 +275,7 @@
                     "Port": 81
                 }
             ],
-            "UpstreamPathTemplate": "/api/user/routes/{id}",
+            "UpstreamPathTemplate": "/api/route/{id}",
             "UpstreamHttpMethod": [
                 "DELETE"
             ]
@@ -289,7 +289,7 @@
                     "Port": 81
                 }
             ],
-            "UpstreamPathTemplate": "/api/user/routes/{routeId}/destinations",
+            "UpstreamPathTemplate": "/api/route/{routeId}/destinations",
             "UpstreamHttpMethod": [
                 "POST"
             ]
@@ -303,7 +303,7 @@
                     "Port": 81
                 }
             ],
-            "UpstreamPathTemplate": "/api/user/routes/{routeId}/destinations/{destinationId}",
+            "UpstreamPathTemplate": "/api/route/{routeId}/destinations/{destinationId}",
             "UpstreamHttpMethod": [
                 "DELETE"
             ]
@@ -317,7 +317,7 @@
                     "Port": 81
                 }
             ],
-            "UpstreamPathTemplate": "/api/user/routes/destinations/{routeDestinationId}",
+            "UpstreamPathTemplate": "/api/route/destinations/{routeDestinationId}",
             "UpstreamHttpMethod": [
                 "PUT"
             ]
@@ -331,7 +331,133 @@
                     "Port": 81
                 }
             ],
-            "UpstreamPathTemplate": "/api/user/routes/{routeId}/destinations/reorder",
+            "UpstreamPathTemplate": "/api/route/{routeId}/destinations/reorder",
+            "UpstreamHttpMethod": [
+                "PUT"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Route/{routeId}/days",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/route/{routeId}/days",
+            "UpstreamHttpMethod": [
+                "GET"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Route/{routeId}/days/{dayNumber}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/route/{routeId}/days/{dayNumber}",
+            "UpstreamHttpMethod": [
+                "GET"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Route/{routeId}/days",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/route/{routeId}/days",
+            "UpstreamHttpMethod": [
+                "POST"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Route/{routeId}/days/{dayNumber}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/route/{routeId}/days/{dayNumber}",
+            "UpstreamHttpMethod": [
+                "PUT"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Route/{routeId}/days/{dayNumber}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/route/{routeId}/days/{dayNumber}",
+            "UpstreamHttpMethod": [
+                "DELETE"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Route/{routeId}/days/{dayNumber}/destinations",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/route/{routeId}/days/{dayNumber}/destinations",
+            "UpstreamHttpMethod": [
+                "GET"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Route/{routeId}/days/{dayNumber}/destinations",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/route/{routeId}/days/{dayNumber}/destinations",
+            "UpstreamHttpMethod": [
+                "POST"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Route/{routeId}/days/{dayNumber}/destinations/{destinationId}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/route/{routeId}/days/{dayNumber}/destinations/{destinationId}",
+            "UpstreamHttpMethod": [
+                "DELETE"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Route/{routeId}/days/{dayNumber}/destinations/reorder",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/route/{routeId}/days/{dayNumber}/destinations/reorder",
             "UpstreamHttpMethod": [
                 "PUT"
             ]
@@ -534,6 +660,51 @@
                 "GET",
                 "PUT",
                 "DELETE"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/admin/cities",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "admin_api",
+                    "Port": 82
+                }
+            ],
+            "UpstreamPathTemplate": "/api/admin/cities",
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/admin/cities/{id}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "admin_api",
+                    "Port": 82
+                }
+            ],
+            "UpstreamPathTemplate": "/api/admin/cities/{id}",
+            "UpstreamHttpMethod": [
+                "GET",
+                "PUT",
+                "DELETE"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/admin/cities/merge-duplicates",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "admin_api",
+                    "Port": 82
+                }
+            ],
+            "UpstreamPathTemplate": "/api/admin/cities/merge-duplicates",
+            "UpstreamHttpMethod": [
+                "POST"
             ]
         }
     ],

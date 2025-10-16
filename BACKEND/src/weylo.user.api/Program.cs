@@ -4,22 +4,21 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using weylo.shared.Configuration;
-using weylo.user.api.Services;
-using weylo.user.api.Services.Interfaces;
-using System.Reflection;
-using weylo.user.api.Controllers.Data;
-using weylo.user.api.Mappings;
 using weylo.shared.Services.Interfaces;
 using weylo.shared.Services;
+using weylo.user.api.Data;
+using weylo.user.api.Services.Interfaces;
+using weylo.user.api.Services;
+using weylo.user.api.Mappings;
+using System.Reflection;
 using System.Security.Claims;
+using weylo.user.api.Mappings.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Controllers
+// --- Controllers + Swagger ---
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-
-// Swagger + JWT
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
@@ -44,11 +43,7 @@ builder.Services.AddSwaggerGen(c =>
         {
             new OpenApiSecurityScheme
             {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
             },
             Array.Empty<string>()
         }
@@ -57,22 +52,19 @@ builder.Services.AddSwaggerGen(c =>
     var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFilename);
     if (File.Exists(xmlPath))
-    {
         c.IncludeXmlComments(xmlPath);
-    }
 
     c.DescribeAllParametersInCamelCase();
 });
 
-// Configure database (PostgreSQL)
+// --- Database ---
 builder.Services.AddDbContext<UserDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("PSQL")));
 
-// JWT Configuration
-var jwtSettingsSection = builder.Configuration.GetSection("JwtSettings");
-builder.Services.Configure<JwtSettings>(jwtSettingsSection);
-
-var jwtSettings = jwtSettingsSection.Get<JwtSettings>()
+// --- JWT ---
+var jwtSection = builder.Configuration.GetSection("JwtSettings");
+builder.Services.Configure<JwtSettings>(jwtSection);
+var jwtSettings = jwtSection.Get<JwtSettings>()
     ?? throw new InvalidOperationException("JWT settings not configured");
 var key = Encoding.ASCII.GetBytes(jwtSettings.Key);
 
@@ -99,69 +91,42 @@ builder.Services.AddAuthentication(options =>
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero,
         NameClaimType = ClaimTypes.Name,
-        RoleClaimType = ClaimTypes.Role,
-    };
-
-    options.Events = new JwtBearerEvents
-    {
-        OnTokenValidated = context =>
-        {
-            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-            logger.LogInformation("✅ JWT Token validated in User API");
-            return Task.CompletedTask;
-        },
-        OnAuthenticationFailed = context =>
-        {
-            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-            logger.LogError(context.Exception, "❌ JWT Authentication failed in User API");
-            return Task.CompletedTask;
-        }
+        RoleClaimType = ClaimTypes.Role
     };
 });
 
-// Register app services
+// --- App services ---
 builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddAutoMapper(cfg =>
-{
-    cfg.AddProfile<MappingProfile>();
-});
 builder.Services.AddScoped<IDestinationService, DestinationService>();
-builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
-builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IRouteService, RouteService>();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<IFilterService, FilterService>();
+builder.Services.AddScoped<IGooglePlacesCategoryMapper, GooglePlacesCategoryMapper>();
+builder.Services.AddHttpContextAccessor();
 
-// CORS
+// --- AutoMapper ---
+builder.Services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfile>());
+
+// --- CORS ---
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
-    {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
-    });
+    options.AddPolicy("AllowAll", policy => policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 });
 
 var app = builder.Build();
 
-// Test DB connection
+// --- Database init & default categories (scoped, как в Admin API) ---
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-    var logger = services.GetRequiredService<ILogger<Program>>();
+    var logger = services.GetRequiredService<ILogger<DatabaseInitializer>>(); // ✅ логгер нужного типа
+    var context = services.GetRequiredService<UserDbContext>();
+    var initializer = new DatabaseInitializer(context, logger);
 
-    try
-    {
-        var context = services.GetRequiredService<UserDbContext>();
-        await context.Database.CanConnectAsync();
-        logger.LogInformation("Connected to User database");
-    }
-    catch (Exception ex)
-    {
-        logger.LogError(ex, "User API database initialization failed.");
-    }
+    await initializer.InitializeAsync();
 }
 
-// Middleware
+// --- Middleware ---
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
@@ -169,13 +134,10 @@ app.UseSwaggerUI(c =>
     c.RoutePrefix = "swagger";
     c.DisplayRequestDuration();
 });
-
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
-
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();

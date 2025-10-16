@@ -1,4 +1,3 @@
-// services/placesService.ts
 import { BackendPlace, SavedPlace } from "../types/map";
 import { ApiResponse } from "../types/shared";
 import httpClient from "./httpClient";
@@ -13,7 +12,7 @@ interface SavePlaceRequest {
   imageUrl?: string;
   cityName: string;
   countryName: string;
-  googleType?: string;
+  googleTypes?: string[];
 }
 
 const extractLocationInfo = (
@@ -28,8 +27,12 @@ const extractLocationInfo = (
 export const placesService = {
   async savePlace(place: SavedPlace): Promise<ApiResponse<{ id: number }>> {
     const { city, country } = extractLocationInfo(place.formattedAddress);
-    const googleType =
-      place.types?.[0] || place.primaryTypeDisplayName?.text || "";
+
+    const googleTypes = place.types?.length
+      ? place.types
+      : place.primaryTypeDisplayName?.text
+      ? [place.primaryTypeDisplayName.text]
+      : [];
 
     const request: SavePlaceRequest = {
       googlePlaceId: place.placeId,
@@ -41,26 +44,23 @@ export const placesService = {
       imageUrl: place.photos?.[0]?.getURI?.(),
       cityName: city,
       countryName: country,
-      googleType: googleType,
+      googleTypes,
     };
 
-    return httpClient.post<{ id: number }>(
-      "/api/user/destinations/save",
-      request
-    );
+    return httpClient.post<{ id: number }>("/api/destinations/save", request);
   },
 
   async deletePlace(
     backendId: number
   ): Promise<ApiResponse<{ success: boolean }>> {
     return httpClient.delete<{ success: boolean }>(
-      `/api/user/destinations/${backendId}`
+      `/api/destinations/${backendId}`
     );
   },
 
   async getPlaces(): Promise<ApiResponse<SavedPlace[]>> {
     const response = await httpClient.get<BackendPlace[]>(
-      "/api/user/destinations/catalogue"
+      "/api/destinations/catalogue"
     );
 
     if (!response.success || !response.data) {
@@ -88,7 +88,7 @@ export const placesService = {
           ]
         : undefined,
       types: bp.googleType
-        ? [bp.googleType]
+        ? bp.googleType.split(",").map((t) => t.trim())
         : [bp.category.toLowerCase().replace(" ", "_")],
       primaryTypeDisplayName: {
         text: bp.category,
@@ -100,7 +100,7 @@ export const placesService = {
 
   async getMyPlaces(): Promise<ApiResponse<SavedPlace[]>> {
     const response = await httpClient.get<BackendPlace[]>(
-      "/api/user/destinations/my"
+      "/api/destinations/my"
     );
 
     if (!response.success || !response.data) {
@@ -128,7 +128,7 @@ export const placesService = {
           ]
         : undefined,
       types: bp.googleType
-        ? [bp.googleType]
+        ? bp.googleType.split(",").map((t) => t.trim())
         : [bp.category.toLowerCase().replace(" ", "_")],
       primaryTypeDisplayName: {
         text: bp.category,

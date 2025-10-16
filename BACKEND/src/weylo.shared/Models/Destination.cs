@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace weylo.shared.Models
 {
-    // Places - LINKS ONLY on Google Places
     public class Destination
     {
         public int Id { get; set; }
@@ -14,23 +14,30 @@ namespace weylo.shared.Models
         public decimal Latitude { get; set; }
         public decimal Longitude { get; set; }
 
+        [ForeignKey(nameof(Category))]
         public int CategoryId { get; set; }
+
+        [ForeignKey(nameof(City))]
         public int CityId { get; set; }
 
-        // !!!: Google Place ID - MAIN DATA SOURCE
         [Required]
         [MaxLength(255)]
         public string GooglePlaceId { get; set; } = string.Empty;
 
-        // Main data cache (in order to not pull google api for lists each time)
         [MaxLength(1000)]
         public string? CachedDescription { get; set; }
+
         public decimal? CachedRating { get; set; }
+
         [MaxLength(500)]
         public string? CachedImageUrl { get; set; }
+
         [MaxLength(500)]
         public string? CachedAddress { get; set; }
+
         public DateTime? CacheUpdatedAt { get; set; }
+
+        [MaxLength(100)]
         public string GoogleType { get; set; } = "general";
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -38,7 +45,8 @@ namespace weylo.shared.Models
         // Navigation properties
         public Category Category { get; set; } = null!;
         public City City { get; set; } = null!;
-        
-        public ICollection<RouteDestination> RouteDestinations { get; set; } = new List<RouteDestination>();
+
+        public ICollection<FilterValue> FilterValues { get; set; } = new List<FilterValue>();
+        public ICollection<UserDestination> UserDestinations { get; set; } = new List<UserDestination>();
     }
 }

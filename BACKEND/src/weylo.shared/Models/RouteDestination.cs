@@ -2,28 +2,26 @@ using System.ComponentModel.DataAnnotations;
 
 namespace weylo.shared.Models
 {
-    // Link between UserRoute and Destination with additional info
     public class RouteDestination
     {
         public int Id { get; set; }
 
-        public int UserRouteId { get; set; }
-        public int DestinationId { get; set; }
-
-        public int Order { get; set; } // visit order
+        public int RouteDayId { get; set; }
+        public int UserDestinationId { get; set; }
+        public int OrderInDay { get; set; }
         public DateTime? PlannedVisitDate { get; set; }
-        public TimeSpan? EstimatedDuration { get; set; } // planned visit time
+        public string? EstimatedDuration { get; set; }
 
         [MaxLength(500)]
-        public string? UserNotes { get; set; } // user notes
+        public string? UserNotes { get; set; }
 
-        public bool IsVisited { get; set; } = false; // visited or not toggle 
+        public bool IsVisited { get; set; } = false;
         public DateTime? ActualVisitDate { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation properties
-        public UserRoute UserRoute { get; set; } = null!;
-        public Destination Destination { get; set; } = null!;
+        public RouteDay RouteDay { get; set; } = null!;
+        public UserDestination UserDestination { get; set; } = null!;
     }
 }

@@ -1,7 +1,7 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using weylo.shared.Models;
-using weylo.user.api.Controllers.Data;
+using weylo.user.api.Data;
 using weylo.user.api.DTOS;
 using weylo.user.api.Requests;
 using weylo.user.api.Services.Interfaces;
@@ -48,40 +48,78 @@ namespace weylo.user.api.Services
             if (route == null)
                 throw new BadHttpRequestException($"Route with id {routeId} not found");
 
-            // Проверяем существование места
-            var destination = await _context.Destinations
-                .FirstOrDefaultAsync(d => d.Id == request.DestinationId);
+            // Находим или создаем UserDestination
+            var userDestination = await _context.UserDestinations
+                .Include(ud => ud.Destination)
+                .FirstOrDefaultAsync(ud =>
+                    ud.UserId == userId &&
+                    ud.DestinationId == request.DestinationId);
 
-            if (destination == null)
-                throw new BadHttpRequestException($"Destination with id {request.DestinationId} not found");
+            if (userDestination == null)
+            {
+                var destination = await _context.Destinations
+                    .FirstOrDefaultAsync(d => d.Id == request.DestinationId);
 
-            // Проверяем, не добавлено ли уже это место
+                if (destination == null)
+                    throw new BadHttpRequestException($"Destination with id {request.DestinationId} not found");
+
+                userDestination = new UserDestination
+                {
+                    UserId = userId,
+                    DestinationId = request.DestinationId,
+                    SavedAt = DateTime.UtcNow
+                };
+                await _context.UserDestinations.AddAsync(userDestination);
+                await _context.SaveChangesAsync();
+            }
+
+            var routeDay = await _context.RouteDays
+                .FirstOrDefaultAsync(rd => rd.UserRouteId == routeId && rd.DayNumber == request.DayNumber);
+
+            if (routeDay == null)
+            {
+                routeDay = new RouteDay
+                {
+                    UserRouteId = routeId,
+                    DayNumber = request.DayNumber,
+                    CreatedAt = DateTime.UtcNow
+                };
+                await _context.RouteDays.AddAsync(routeDay);
+                await _context.SaveChangesAsync();
+            }
+
             var existingDestination = await _context.RouteDestinations
-                .FirstOrDefaultAsync(rd => rd.UserRouteId == routeId && rd.DestinationId == request.DestinationId);
+                .FirstOrDefaultAsync(rd => rd.RouteDayId == routeDay.Id && rd.UserDestinationId == userDestination.Id);
 
             if (existingDestination != null)
-                throw new BadHttpRequestException($"Destination already exists in this route");
+                throw new BadHttpRequestException($"Destination already exists in day {request.DayNumber}");
 
             var maxOrder = await _context.RouteDestinations
-                .Where(rd => rd.UserRouteId == routeId)
-                .MaxAsync(rd => (int?)rd.Order) ?? 0;
+                .Where(rd => rd.RouteDayId == routeDay.Id)
+                .MaxAsync(rd => (int?)rd.OrderInDay) ?? 0;
 
-            var routeDestination = _mapper.Map<RouteDestination>(request);
-            routeDestination.UserRouteId = routeId;
-            routeDestination.Order = request.Order == 0 ? (maxOrder + 1) : request.Order;
-            routeDestination.CreatedAt = DateTime.UtcNow;
+            var routeDestination = new RouteDestination
+            {
+                RouteDayId = routeDay.Id,
+                UserDestinationId = userDestination.Id,
+                OrderInDay = request.OrderInDay == 0 ? (maxOrder + 1) : request.OrderInDay,
+                UserNotes = request.UserNotes,
+                PlannedVisitDate = request.PlannedVisitDate,
+                EstimatedDuration = request.EstimatedDuration,
+                CreatedAt = DateTime.UtcNow
+            };
 
             await _context.RouteDestinations.AddAsync(routeDestination);
-
             route.UpdatedAt = DateTime.UtcNow;
-
             await _context.SaveChangesAsync();
 
             await _context.Entry(routeDestination)
-                .Reference(rd => rd.Destination)
+                .Reference(rd => rd.UserDestination)
                 .Query()
-                .Include(d => d.Category)
-                .Include(d => d.City)
+                .Include(ud => ud.Destination)
+                    .ThenInclude(d => d.Category)
+                .Include(ud => ud.Destination)
+                    .ThenInclude(d => d.City)
                     .ThenInclude(c => c.Country)
                 .LoadAsync();
 
@@ -93,11 +131,15 @@ namespace weylo.user.api.Services
             var userId = _currentUserService.UserId;
 
             var route = await _context.UserRoutes
-                .Include(r => r.RouteDestinations.OrderBy(rd => rd.Order))
-                    .ThenInclude(rd => rd.Destination)
+                .Include(r => r.RouteDays.OrderBy(rd => rd.DayNumber))
+                    .ThenInclude(rd => rd.RouteDestinations.OrderBy(rd => rd.OrderInDay))
+                    .ThenInclude(rd => rd.UserDestination)
+                    .ThenInclude(ud => ud.Destination)
                     .ThenInclude(d => d.Category)
-                .Include(r => r.RouteDestinations)
-                    .ThenInclude(rd => rd.Destination)
+                .Include(r => r.RouteDays)
+                    .ThenInclude(rd => rd.RouteDestinations.OrderBy(rd => rd.OrderInDay))
+                    .ThenInclude(rd => rd.UserDestination)
+                    .ThenInclude(ud => ud.Destination)
                     .ThenInclude(d => d.City)
                     .ThenInclude(c => c.Country)
                 .FirstOrDefaultAsync(r => r.Id == routeId && r.UserId == userId);
@@ -114,7 +156,8 @@ namespace weylo.user.api.Services
 
             var routes = await _context.UserRoutes
                 .Where(r => r.UserId == userId)
-                .Include(r => r.RouteDestinations)
+                .Include(r => r.RouteDays)
+                    .ThenInclude(rd => rd.RouteDestinations)
                 .OrderByDescending(r => r.UpdatedAt)
                 .ToListAsync();
 
@@ -131,7 +174,6 @@ namespace weylo.user.api.Services
             if (route == null)
                 return false;
 
-            // RouteDestinations удалятся автоматически благодаря Cascade
             _context.UserRoutes.Remove(route);
             await _context.SaveChangesAsync();
             return true;
@@ -147,27 +189,36 @@ namespace weylo.user.api.Services
             if (route == null)
                 return false;
 
+            var userDestination = await _context.UserDestinations
+                .FirstOrDefaultAsync(ud => ud.UserId == userId && ud.DestinationId == destinationId);
+
+            if (userDestination == null)
+                return false;
+
             var routeDestination = await _context.RouteDestinations
-                .FirstOrDefaultAsync(rd => rd.UserRouteId == routeId && rd.DestinationId == destinationId);
+                .Include(rd => rd.RouteDay)
+                .FirstOrDefaultAsync(rd =>
+                    rd.RouteDay.UserRouteId == routeId &&
+                    rd.UserDestinationId == userDestination.Id);
 
             if (routeDestination == null)
                 return false;
 
-            var removedOrder = routeDestination.Order;
+            var routeDayId = routeDestination.RouteDayId;
+            var removedOrder = routeDestination.OrderInDay;
 
             _context.RouteDestinations.Remove(routeDestination);
 
             var remainingDestinations = await _context.RouteDestinations
-                .Where(rd => rd.UserRouteId == routeId && rd.Order > removedOrder)
+                .Where(rd => rd.RouteDayId == routeDayId && rd.OrderInDay > removedOrder)
                 .ToListAsync();
 
             foreach (var rd in remainingDestinations)
             {
-                rd.Order--;
+                rd.OrderInDay--;
             }
 
             route.UpdatedAt = DateTime.UtcNow;
-
             await _context.SaveChangesAsync();
             return true;
         }
@@ -177,24 +228,30 @@ namespace weylo.user.api.Services
             var userId = _currentUserService.UserId;
 
             var route = await _context.UserRoutes
-                .Include(r => r.RouteDestinations)
+                .Include(r => r.RouteDays)
+                    .ThenInclude(rd => rd.RouteDestinations)
                 .FirstOrDefaultAsync(r => r.Id == routeId && r.UserId == userId);
 
             if (route == null)
                 return false;
 
-            var routeDestinationIds = route.RouteDestinations.Select(rd => rd.DestinationId).ToHashSet();
-            if (destinationOrder.Any(id => !routeDestinationIds.Contains(id)))
+            var allRouteDestinationIds = route.RouteDays
+                .SelectMany(rd => rd.RouteDestinations)
+                .Select(rd => rd.Id)
+                .ToHashSet();
+
+            if (destinationOrder.Any(id => !allRouteDestinationIds.Contains(id)))
                 return false;
 
             for (int i = 0; i < destinationOrder.Count; i++)
             {
-                var destination = route.RouteDestinations
-                    .FirstOrDefault(rd => rd.DestinationId == destinationOrder[i]);
+                var routeDestination = route.RouteDays
+                    .SelectMany(rd => rd.RouteDestinations)
+                    .FirstOrDefault(rd => rd.Id == destinationOrder[i]);
 
-                if (destination != null)
+                if (routeDestination != null)
                 {
-                    destination.Order = i + 1;
+                    routeDestination.OrderInDay = i + 1;
                 }
             }
 
@@ -208,7 +265,7 @@ namespace weylo.user.api.Services
             var userId = _currentUserService.UserId;
 
             var route = await _context.UserRoutes
-                .Include(r => r.RouteDestinations)
+                .Include(r => r.RouteDays)
                 .FirstOrDefaultAsync(r => r.Id == routeId && r.UserId == userId);
 
             if (route == null)
@@ -223,14 +280,13 @@ namespace weylo.user.api.Services
             if (request.EndDate.HasValue)
                 route.EndDate = request.EndDate.Value;
 
-            if (request.Notes != null) // Даже пустую строку можно установить
+            if (request.Notes != null)
                 route.Notes = request.Notes;
 
             if (!string.IsNullOrWhiteSpace(request.Status))
                 route.Status = request.Status;
 
             route.UpdatedAt = DateTime.UtcNow;
-
             await _context.SaveChangesAsync();
 
             return _mapper.Map<RouteDto>(route);
@@ -241,52 +297,57 @@ namespace weylo.user.api.Services
             var userId = _currentUserService.UserId;
 
             var routeDestination = await _context.RouteDestinations
-                .Include(rd => rd.UserRoute)
-                .Include(rd => rd.Destination)
+                .Include(rd => rd.RouteDay)
+                    .ThenInclude(rd => rd.UserRoute)
+                .Include(rd => rd.UserDestination)
+                    .ThenInclude(ud => ud.Destination)
                     .ThenInclude(d => d.Category)
-                .Include(rd => rd.Destination)
+                .Include(rd => rd.UserDestination)
+                    .ThenInclude(ud => ud.Destination)
                     .ThenInclude(d => d.City)
                     .ThenInclude(c => c.Country)
-                .FirstOrDefaultAsync(rd => rd.Id == routeDestinationId && rd.UserRoute.UserId == userId);
+                .FirstOrDefaultAsync(rd =>
+                    rd.Id == routeDestinationId &&
+                    rd.RouteDay.UserRoute.UserId == userId);
 
             if (routeDestination == null)
                 throw new BadHttpRequestException($"Route destination with id {routeDestinationId} not found");
 
-            if (request.Order.HasValue)
+            if (request.OrderInDay.HasValue)
             {
-                var oldOrder = routeDestination.Order;
-                var newOrder = request.Order.Value;
+                var oldOrder = routeDestination.OrderInDay;
+                var newOrder = request.OrderInDay.Value;
 
                 if (oldOrder != newOrder)
                 {
                     var otherDestinations = await _context.RouteDestinations
-                        .Where(rd => rd.UserRouteId == routeDestination.UserRouteId && rd.Id != routeDestinationId)
+                        .Where(rd => rd.RouteDayId == routeDestination.RouteDayId && rd.Id != routeDestinationId)
                         .ToListAsync();
 
                     if (newOrder < oldOrder)
                     {
-                        foreach (var rd in otherDestinations.Where(rd => rd.Order >= newOrder && rd.Order < oldOrder))
+                        foreach (var rd in otherDestinations.Where(rd => rd.OrderInDay >= newOrder && rd.OrderInDay < oldOrder))
                         {
-                            rd.Order++;
+                            rd.OrderInDay++;
                         }
                     }
                     else
                     {
-                        foreach (var rd in otherDestinations.Where(rd => rd.Order > oldOrder && rd.Order <= newOrder))
+                        foreach (var rd in otherDestinations.Where(rd => rd.OrderInDay > oldOrder && rd.OrderInDay <= newOrder))
                         {
-                            rd.Order--;
+                            rd.OrderInDay--;
                         }
                     }
 
-                    routeDestination.Order = newOrder;
+                    routeDestination.OrderInDay = newOrder;
                 }
             }
 
             if (request.PlannedVisitDate.HasValue)
                 routeDestination.PlannedVisitDate = request.PlannedVisitDate.Value;
 
-            if (request.EstimatedDuration.HasValue)
-                routeDestination.EstimatedDuration = request.EstimatedDuration.Value;
+            if (!string.IsNullOrWhiteSpace(request.EstimatedDuration))
+                routeDestination.EstimatedDuration = request.EstimatedDuration;
 
             if (request.UserNotes != null)
                 routeDestination.UserNotes = request.UserNotes;
@@ -295,7 +356,6 @@ namespace weylo.user.api.Services
             {
                 routeDestination.IsVisited = request.IsVisited.Value;
 
-                // Автоматически устанавливаем дату посещения
                 if (request.IsVisited.Value && !routeDestination.ActualVisitDate.HasValue)
                     routeDestination.ActualVisitDate = DateTime.UtcNow;
                 else if (!request.IsVisited.Value)
@@ -305,102 +365,177 @@ namespace weylo.user.api.Services
             if (request.ActualVisitDate.HasValue)
                 routeDestination.ActualVisitDate = request.ActualVisitDate.Value;
 
-            // Обновляем дату изменения маршрута
-            routeDestination.UserRoute.UpdatedAt = DateTime.UtcNow;
-
+            routeDestination.RouteDay.UserRoute.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
             return _mapper.Map<RouteDestinationDto>(routeDestination);
         }
 
-        public async Task<RouteStatisticsDto> GetRouteStatisticsAsync(int routeId)
+        public async Task<RouteDayDto> AddDayToRouteAsync(int routeId, AddDayRequest request)
         {
             var userId = _currentUserService.UserId;
 
             var route = await _context.UserRoutes
-                .Include(r => r.RouteDestinations)
                 .FirstOrDefaultAsync(r => r.Id == routeId && r.UserId == userId);
 
             if (route == null)
                 throw new BadHttpRequestException($"Route with id {routeId} not found");
 
-            var statistics = new RouteStatisticsDto
+            var existingDay = await _context.RouteDays
+                .FirstOrDefaultAsync(rd => rd.UserRouteId == routeId && rd.DayNumber == request.DayNumber);
+
+            if (existingDay != null)
+                throw new BadHttpRequestException($"Day {request.DayNumber} already exists in this route");
+
+            var routeDay = new RouteDay
             {
-                TotalDestinations = route.RouteDestinations.Count,
-                VisitedDestinations = route.RouteDestinations.Count(rd => rd.IsVisited),
-                PlannedDestinations = route.RouteDestinations.Count(rd => !rd.IsVisited),
-                TotalEstimatedDuration = route.RouteDestinations
-                    .Where(rd => rd.EstimatedDuration.HasValue)
-                    .Sum(rd => rd.EstimatedDuration!.Value.TotalMinutes),
-                DaysUntilStart = route.StartDate > DateTime.UtcNow
-                    ? (int)(route.StartDate - DateTime.UtcNow).TotalDays
-                    : 0,
-                TripDuration = (int)(route.EndDate - route.StartDate).TotalDays + 1
+                UserRouteId = routeId,
+                DayNumber = request.DayNumber,
+                Date = request.Date,
+                Notes = request.Notes,
+                CreatedAt = DateTime.UtcNow
             };
 
-            return statistics;
+            await _context.RouteDays.AddAsync(routeDay);
+            route.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return _mapper.Map<RouteDayDto>(routeDay);
         }
 
-        public async Task<RouteDto> DuplicateRouteAsync(int routeId)
+        public async Task<RouteDayDto> UpdateDayAsync(int routeDayId, UpdateDayRequest request)
         {
             var userId = _currentUserService.UserId;
 
-            var originalRoute = await _context.UserRoutes
-                .Include(r => r.RouteDestinations)
-                .FirstOrDefaultAsync(r => r.Id == routeId && r.UserId == userId);
+            var routeDay = await _context.RouteDays
+                .Include(rd => rd.UserRoute)
+                .FirstOrDefaultAsync(rd => rd.Id == routeDayId && rd.UserRoute.UserId == userId);
 
-            if (originalRoute == null)
-                throw new BadHttpRequestException($"Route with id {routeId} not found");
+            if (routeDay == null)
+                throw new BadHttpRequestException($"Route day with id {routeDayId} not found");
 
-            var newRoute = new UserRoute
-            {
-                Name = $"{originalRoute.Name} (Copy)",
-                UserId = userId,
-                StartDate = originalRoute.StartDate,
-                EndDate = originalRoute.EndDate,
-                Notes = originalRoute.Notes,
-                Status = "Draft",
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
+            if (request.Date.HasValue)
+                routeDay.Date = request.Date.Value;
 
-            await _context.UserRoutes.AddAsync(newRoute);
+            if (request.Notes != null)
+                routeDay.Notes = request.Notes;
+
+            routeDay.UserRoute.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
-            foreach (var rd in originalRoute.RouteDestinations.OrderBy(rd => rd.Order))
+            return _mapper.Map<RouteDayDto>(routeDay);
+        }
+
+        public async Task<RouteDestinationDto> MoveDestinationToDayAsync(int routeDestinationId, MoveDestinationRequest request)
+        {
+            var userId = _currentUserService.UserId;
+
+            var routeDestination = await _context.RouteDestinations
+                .Include(rd => rd.RouteDay)
+                    .ThenInclude(rd => rd.UserRoute)
+                .Include(rd => rd.UserDestination)
+                    .ThenInclude(ud => ud.Destination)
+                .FirstOrDefaultAsync(rd =>
+                    rd.Id == routeDestinationId &&
+                    rd.RouteDay.UserRoute.UserId == userId);
+
+            if (routeDestination == null)
+                throw new BadHttpRequestException($"Route destination with id {routeDestinationId} not found");
+
+            var currentRouteDay = routeDestination.RouteDay;
+            var routeId = currentRouteDay.UserRouteId;
+
+            // Находим или создаем новый день
+            var newRouteDay = await _context.RouteDays
+                .FirstOrDefaultAsync(rd => rd.UserRouteId == routeId && rd.DayNumber == request.NewDayNumber);
+
+            if (newRouteDay == null)
             {
-                var newRouteDestination = new RouteDestination
+                newRouteDay = new RouteDay
                 {
-                    UserRouteId = newRoute.Id,
-                    DestinationId = rd.DestinationId,
-                    Order = rd.Order,
-                    PlannedVisitDate = rd.PlannedVisitDate,
-                    EstimatedDuration = rd.EstimatedDuration,
-                    UserNotes = rd.UserNotes,
-                    IsVisited = false,
+                    UserRouteId = routeId,
+                    DayNumber = request.NewDayNumber,
                     CreatedAt = DateTime.UtcNow
                 };
-
-                await _context.RouteDestinations.AddAsync(newRouteDestination);
+                await _context.RouteDays.AddAsync(newRouteDay);
+                await _context.SaveChangesAsync();
             }
 
+            // Обновляем порядок в старом дне
+            var oldDayDestinations = await _context.RouteDestinations
+                .Where(rd => rd.RouteDayId == currentRouteDay.Id && rd.OrderInDay > routeDestination.OrderInDay)
+                .ToListAsync();
+
+            foreach (var rd in oldDayDestinations)
+            {
+                rd.OrderInDay--;
+            }
+
+            // Определяем порядок в новом дне
+            var maxOrderInNewDay = await _context.RouteDestinations
+                .Where(rd => rd.RouteDayId == newRouteDay.Id)
+                .MaxAsync(rd => (int?)rd.OrderInDay) ?? 0;
+
+            // Перемещаем место
+            routeDestination.RouteDayId = newRouteDay.Id;
+            routeDestination.OrderInDay = request.NewOrderInDay == 0 ? (maxOrderInNewDay + 1) : request.NewOrderInDay;
+
+            // Обновляем порядок в новом дне если нужно
+            if (request.NewOrderInDay > 0)
+            {
+                var newDayDestinations = await _context.RouteDestinations
+                    .Where(rd => rd.RouteDayId == newRouteDay.Id && rd.OrderInDay >= routeDestination.OrderInDay && rd.Id != routeDestination.Id)
+                    .ToListAsync();
+
+                foreach (var rd in newDayDestinations)
+                {
+                    rd.OrderInDay++;
+                }
+            }
+
+            currentRouteDay.UserRoute.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
-            newRoute = await _context.UserRoutes
-                .Include(r => r.RouteDestinations)
-                .FirstAsync(r => r.Id == newRoute.Id);
+            await _context.Entry(routeDestination)
+                .Reference(rd => rd.UserDestination)
+                .Query()
+                .Include(ud => ud.Destination)
+                    .ThenInclude(d => d.Category)
+                .Include(ud => ud.Destination)
+                    .ThenInclude(d => d.City)
+                    .ThenInclude(c => c.Country)
+                .LoadAsync();
 
-            return _mapper.Map<RouteDto>(newRoute);
+            return _mapper.Map<RouteDestinationDto>(routeDestination);
         }
-    }
+        public async Task<bool> RemoveDayFromRouteAsync(int routeId, int dayNumber)
+        {
+            var userId = _currentUserService.UserId;
 
-    public class RouteStatisticsDto
-    {
-        public int TotalDestinations { get; set; }
-        public int VisitedDestinations { get; set; }
-        public int PlannedDestinations { get; set; }
-        public double TotalEstimatedDuration { get; set; } // в минутах
-        public int DaysUntilStart { get; set; }
-        public int TripDuration { get; set; } // в днях
+            var route = await _context.UserRoutes
+                .FirstOrDefaultAsync(r => r.Id == routeId && r.UserId == userId);
+
+            if (route == null)
+                return false;
+
+            var routeDay = await _context.RouteDays
+                .Include(rd => rd.RouteDestinations)
+                .FirstOrDefaultAsync(rd => rd.UserRouteId == routeId && rd.DayNumber == dayNumber);
+
+            if (routeDay == null)
+                return false;
+
+            if (routeDay.RouteDestinations.Any())
+            {
+                // Можно либо запретить удаление, либо переместить места в другой день
+                // Сейчас просто запрет на удаление дней с местами
+                return false;
+            }
+
+            _context.RouteDays.Remove(routeDay);
+            route.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            return true;
+        }
     }
 }

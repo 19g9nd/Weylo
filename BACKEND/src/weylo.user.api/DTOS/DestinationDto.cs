@@ -24,9 +24,10 @@ namespace weylo.user.api.DTOS
         public string? CountryName { get; set; }
         public string? CountryCode { get; set; }
 
+        public List<FilterValueDto> FilterValues { get; set; } = new();
+
         // Usage statistics
         public int UsageCount { get; set; } // How many routes include this destination
-
         public DateTime CreatedAt { get; set; }
     }
 }

@@ -39,3 +39,5 @@ export const countriesService = {
     return httpClient.get<string[]>("/api/admin/countries/codes");
   }
 };
+
+export type { BulkCreateResult, SupportedCountry };

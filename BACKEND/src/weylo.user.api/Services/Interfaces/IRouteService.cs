@@ -15,5 +15,11 @@ namespace weylo.user.api.Services.Interfaces
         Task<bool> RemoveDestinationFromRouteAsync(int routeId, int destinationId);
         Task<RouteDestinationDto> UpdateRouteDestinationAsync(int routeDestinationId, UpdateRouteDestinationRequest request);
         Task<bool> ReorderRouteDestinationsAsync(int routeId, List<int> destinationOrder);
+
+        // Days management
+        Task<RouteDayDto> AddDayToRouteAsync(int routeId, AddDayRequest request);
+        Task<bool> RemoveDayFromRouteAsync(int routeId, int dayNumber);
+        Task<RouteDayDto> UpdateDayAsync(int routeDayId, UpdateDayRequest request);
+        Task<RouteDestinationDto> MoveDestinationToDayAsync(int routeDestinationId, MoveDestinationRequest request);
     }
 }

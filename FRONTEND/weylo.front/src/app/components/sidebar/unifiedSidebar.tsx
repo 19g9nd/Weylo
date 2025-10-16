@@ -161,7 +161,7 @@ const matchesSearch = (place: SavedPlace, query: string): boolean => {
 // Get primary category for a place
 const getPrimaryCategory = (place: SavedPlace): PlaceCategory | null => {
   if (!place.types) return null;
-  
+
   for (const category of PLACE_CATEGORIES) {
     if (matchesCategory(place, category.id)) {
       return category;
@@ -264,8 +264,10 @@ const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
   // Calculate category counts
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    PLACE_CATEGORIES.forEach(category => {
-      counts[category.id] = places.filter(place => matchesCategory(place, category.id)).length;
+    PLACE_CATEGORIES.forEach((category) => {
+      counts[category.id] = places.filter((place) =>
+        matchesCategory(place, category.id)
+      ).length;
     });
     return counts;
   }, [places]);
@@ -429,7 +431,9 @@ const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
                           isActive
                             ? "border-blue-500 bg-blue-50 text-blue-700"
                             : "border-gray-200 hover:border-gray-300 bg-white"
-                        } ${count === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
+                        } ${
+                          count === 0 ? "opacity-50 cursor-not-allowed" : ""
+                        }`}
                         disabled={count === 0}
                       >
                         <span className="text-lg">{category.icon}</span>
@@ -560,14 +564,15 @@ const UnifiedSidebar: React.FC<UnifiedSidebarProps> = ({
                         <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
                           {categoryName}
                         </span>
-                        {place.types && place.types.slice(0, 2).map((type, idx) => (
-                          <span 
-                            key={idx}
-                            className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded"
-                          >
-                            {type.replace(/_/g, " ")}
-                          </span>
-                        ))}
+                        {place.types &&
+                          place.types.slice(0, 2).map((type, idx) => (
+                            <span
+                              key={idx}
+                              className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded"
+                            >
+                              {type.replace(/_/g, " ")}
+                            </span>
+                          ))}
                       </div>
                     </div>
                     <div className="flex gap-1">

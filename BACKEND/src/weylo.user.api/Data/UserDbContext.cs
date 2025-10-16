@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using weylo.shared.Data;
 
-namespace weylo.user.api.Controllers.Data
+namespace weylo.user.api.Data
 {
     public class UserDbContext : BaseDbContext
     {

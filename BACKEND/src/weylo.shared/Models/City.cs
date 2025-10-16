@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace weylo.shared.Models
 {
-    // Cities MINE (created with first user request)
     public class City
     {
         public int Id { get; set; }
@@ -16,14 +15,14 @@ namespace weylo.shared.Models
         public decimal Latitude { get; set; }
         public decimal Longitude { get; set; }
 
-        // !!!: Google Place ID for city (to link with Google Places API)
         [Required]
         [MaxLength(255)]
         public string GooglePlaceId { get; set; } = string.Empty;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        // Navigation property
+        // Navigation properties
         public Country Country { get; set; } = null!;
+        public ICollection<Destination> Destinations { get; set; } = new List<Destination>();
     }
 }
