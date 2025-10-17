@@ -6,9 +6,10 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: '**',
+        pathname: '/**', 
       },
     ],
-}
+  },
 };
 
 export default nextConfig;

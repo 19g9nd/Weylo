@@ -1,16 +1,16 @@
 "use client";
 import React, { useState, useMemo } from "react";
 import { SidebarMode, Route } from "../../types/sidebar";
-import { SavedPlace } from "../../types/map";
+import { Place } from "../../types/map";
 import { SupportedCountry } from "../../types/country";
 import { groupPlacesByDay } from "../../utils/routeUtils";
 
 interface UnifiedSidebarProps {
   mode: SidebarMode;
-  places: SavedPlace[];
+  places: Place[];
   selectedPlaceId: string | null;
   onPlaceSelect: (placeId: string | null) => void;
-  onRemovePlace: (place: SavedPlace) => void;
+  onRemovePlace: (place: Place) => void;
   selectedCountry: SupportedCountry | null;
 
   activeRoute: Route | null;
@@ -21,7 +21,7 @@ interface UnifiedSidebarProps {
   onDeleteRoute: (routeId: string) => void;
   onDuplicateRoute: (routeId: string) => void;
 
-  onAddPlaceToRoute: (place: SavedPlace) => void;
+  onAddPlaceToRoute: (place: Place) => void;
   onRemovePlaceFromRoute: (placeId: string) => void;
   onMovePlaceInRoute: (
     routeId: string,
@@ -128,7 +128,7 @@ const PLACE_CATEGORIES: PlaceCategory[] = [
 ];
 
 // Filter utilities
-const matchesCategory = (place: SavedPlace, categoryId: string): boolean => {
+const matchesCategory = (place: Place, categoryId: string): boolean => {
   const category = PLACE_CATEGORIES.find((c) => c.id === categoryId);
   if (!category || !place.types) return false;
 
@@ -140,14 +140,14 @@ const matchesCategory = (place: SavedPlace, categoryId: string): boolean => {
 };
 
 const matchesRating = (
-  place: SavedPlace,
+  place: Place,
   minRating: number | null
 ): boolean => {
   if (minRating === null) return true;
   return (place.rating || 0) >= minRating;
 };
 
-const matchesSearch = (place: SavedPlace, query: string): boolean => {
+const matchesSearch = (place: Place, query: string): boolean => {
   if (!query) return true;
   const searchLower = query.toLowerCase();
   return (
@@ -159,7 +159,7 @@ const matchesSearch = (place: SavedPlace, query: string): boolean => {
 };
 
 // Get primary category for a place
-const getPrimaryCategory = (place: SavedPlace): PlaceCategory | null => {
+const getPrimaryCategory = (place: Place): PlaceCategory | null => {
   if (!place.types) return null;
 
   for (const category of PLACE_CATEGORIES) {

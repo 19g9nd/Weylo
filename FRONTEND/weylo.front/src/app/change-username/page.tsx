@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
 import Navigation from "../components/ui/navigation";
@@ -10,9 +10,19 @@ export default function ChangeUsernamePage() {
   const [confirmNewUsername, setConfirmNewUsername] = useState("");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
 
   const { user, changeUsername } = useAuth();
   const router = useRouter();
+
+  // Handle authentication check in useEffect (client-side only)
+  useEffect(() => {
+    if (!user) {
+      router.push("/login");
+    } else {
+      setIsChecking(false);
+    }
+  }, [user, router]);
 
   const validateUsername = (username: string): string | null => {
     if (username.length < 6) {
@@ -73,10 +83,15 @@ export default function ChangeUsernamePage() {
     setIsLoading(false);
   };
 
-  // Redirect if not authenticated
-  if (!user) {
-    router.push("/login");
-    return null;
+  // Show loading state while checking authentication
+  if (isChecking || !user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-main-text">Loading...</div>
+        </div>
+      </div>
+    );
   }
 
   return (

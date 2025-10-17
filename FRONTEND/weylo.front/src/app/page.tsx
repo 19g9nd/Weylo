@@ -1,5 +1,4 @@
 "use client";
-import Head from "next/head";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -41,15 +40,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Head>
-        <title>Weylo - Discover Your Next Adventure</title>
-        <meta
-          name="description"
-          content="Find and book your perfect travel experience"
-        />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-
       {/* Navigation */}
       <Navigation />
 

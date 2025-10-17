@@ -1,4 +1,4 @@
-import { BackendPlace, SavedPlace } from "../types/map";
+import { BackendPlace, Place } from "../types/map";
 import { ApiResponse } from "../types/shared";
 import httpClient from "./httpClient";
 
@@ -25,7 +25,7 @@ const extractLocationInfo = (
 };
 
 export const placesService = {
-  async savePlace(place: SavedPlace): Promise<ApiResponse<{ id: number }>> {
+  async savePlace(place: Place): Promise<ApiResponse<{ id: number }>> {
     const { city, country } = extractLocationInfo(place.formattedAddress);
 
     const googleTypes = place.types?.length
@@ -58,7 +58,7 @@ export const placesService = {
     );
   },
 
-  async getPlaces(): Promise<ApiResponse<SavedPlace[]>> {
+  async getPlaces(): Promise<ApiResponse<Place[]>> {
     const response = await httpClient.get<BackendPlace[]>(
       "/api/destinations/catalogue"
     );
@@ -70,7 +70,7 @@ export const placesService = {
       };
     }
 
-    const places: SavedPlace[] = response.data.map((bp) => ({
+    const places: Place[] = response.data.map((bp) => ({
       placeId: bp.googlePlaceId,
       backendId: bp.id,
       displayName: bp.name,
@@ -98,7 +98,7 @@ export const placesService = {
     return { success: true, data: places };
   },
 
-  async getMyPlaces(): Promise<ApiResponse<SavedPlace[]>> {
+  async getMyPlaces(): Promise<ApiResponse<Place[]>> {
     const response = await httpClient.get<BackendPlace[]>(
       "/api/destinations/my"
     );
@@ -110,7 +110,7 @@ export const placesService = {
       };
     }
 
-    const places: SavedPlace[] = response.data.map((bp) => ({
+    const places: Place[] = response.data.map((bp) => ({
       placeId: bp.googlePlaceId,
       backendId: bp.id,
       displayName: bp.name,
@@ -136,5 +136,8 @@ export const placesService = {
     }));
 
     return { success: true, data: places };
+  },
+  async addPlaceToUser(backendId: number): Promise<ApiResponse<Place>> {
+    return httpClient.post<Place>(`/api/destinations/my/${backendId}`);
   },
 };

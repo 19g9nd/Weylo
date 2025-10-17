@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
 import Navigation from "../components/ui/navigation";
@@ -11,17 +11,24 @@ export default function ChangePasswordPage() {
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
 
   const { user, changePassword } = useAuth();
   const router = useRouter();
+
+  // Handle authentication check in useEffect (client-side only)
+  useEffect(() => {
+    if (!user) {
+      router.push("/login");
+    } else {
+      setIsChecking(false);
+    }
+  }, [user, router]);
 
   const validatePassword = (password: string): string | null => {
     if (password.length < 6) {
       return "Password must be at least 6 characters long";
     }
-    // if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
-    //   return "Password must contain at least one uppercase letter, one lowercase letter, and one number";
-    // }
     return null;
   };
 
@@ -76,10 +83,15 @@ export default function ChangePasswordPage() {
     setIsLoading(false);
   };
 
-  // Redirect if not authenticated
-  if (!user) {
-    router.push("/login");
-    return null;
+  // Show loading state while checking authentication
+  if (isChecking || !user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-main-text">Loading...</div>
+        </div>
+      </div>
+    );
   }
 
   return (

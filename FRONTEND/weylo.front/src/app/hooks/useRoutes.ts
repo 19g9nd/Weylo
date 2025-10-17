@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { Route, RoutePlace } from "../types/sidebar";
-import { SavedPlace } from "../types/map";
+import { Place } from "../types/map";
 import { calculateRouteStats } from "../utils/routeUtils";
 
 const ROUTES_STORAGE_KEY = "weylo_routes";
@@ -167,7 +167,7 @@ export const useRoutes = () => {
 
   // Add place to route
   const addPlaceToRoute = useCallback(
-    (routeId: string, place: SavedPlace, dayNumber: number) => {
+    (routeId: string, place: Place, dayNumber: number) => {
       updateRoutePlaces(routeId, (places) => {
         // Check if place already exists in route
         if (places.some((p) => p.placeId === place.placeId)) return places;
@@ -312,7 +312,7 @@ export const useRoutes = () => {
 // "use client";
 // import { useState, useEffect, useCallback } from "react";
 // import { Route, RoutePlace } from "../types/sidebar";
-// import { SavedPlace } from "../types/map";
+// import { Place } from "../types/map";
 // import { useRouteDestinations } from "./useRouteDestinations";
 // import {
 //   calculateRouteStats,
@@ -697,7 +697,7 @@ export const useRoutes = () => {
 //    * Add place to route with backend sync
 //    */
 //   const addPlaceToRoute = useCallback(
-//     async (routeId: string, place: SavedPlace, dayNumber: number) => {
+//     async (routeId: string, place: Place, dayNumber: number) => {
 //       const route = routes.find((r) => r.id === routeId);
       
 //       if (!route) {

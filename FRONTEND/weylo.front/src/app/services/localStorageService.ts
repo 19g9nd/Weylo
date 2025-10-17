@@ -1,10 +1,10 @@
 import { IPlaceStorage } from './interfaces/IPlaceStorage';
-import { SavedPlace } from '../types/map';
+import { Place } from '../types/map';
 
 const STORAGE_KEY = 'savedPlaces';
 
 export class LocalStorageService implements IPlaceStorage {
-  async getAll(): Promise<SavedPlace[]> {
+  async getAll(): Promise<Place[]> {
     if (typeof window === 'undefined') return [];
     
     try {
@@ -16,12 +16,12 @@ export class LocalStorageService implements IPlaceStorage {
     }
   }
 
-  async getById(placeId: string): Promise<SavedPlace | null> {
+  async getById(placeId: string): Promise<Place | null> {
     const places = await this.getAll();
     return places.find(p => p.placeId === placeId) || null;
   }
 
-  async add(place: SavedPlace): Promise<SavedPlace> {
+  async add(place: Place): Promise<Place> {
     const places = await this.getAll();
     
     if (places.some(p => p.placeId === place.placeId)) {
@@ -33,7 +33,7 @@ export class LocalStorageService implements IPlaceStorage {
     return place;
   }
 
-  async update(placeId: string, updates: Partial<SavedPlace>): Promise<SavedPlace> {
+  async update(placeId: string, updates: Partial<Place>): Promise<Place> {
     const places = await this.getAll();
     const index = places.findIndex(p => p.placeId === placeId);
     
@@ -63,7 +63,7 @@ export class LocalStorageService implements IPlaceStorage {
     await this._save([]);
   }
 
-  private async _save(places: SavedPlace[]): Promise<void> {
+  private async _save(places: Place[]): Promise<void> {
     if (typeof window === 'undefined') return;
     
     try {

@@ -1,8 +1,8 @@
-import { SavedPlace } from "../../types/map";
+import { Place } from "../../types/map";
 
 export interface IPlaceStorage {
-  getAll(): Promise<SavedPlace[]>;
-  add(place: SavedPlace): Promise<SavedPlace>;
+  getAll(): Promise<Place[]>;
+  add(place: Place): Promise<Place>;
   remove(placeId: string): Promise<void>;
   clear(): Promise<void>;
 }

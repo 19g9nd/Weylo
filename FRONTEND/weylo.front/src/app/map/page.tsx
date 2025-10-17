@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import {
   AdvancedMarker,
   APIProvider,
@@ -10,7 +10,7 @@ import {
 } from "@vis.gl/react-google-maps";
 import { useSavedPlaces } from "../hooks/useSavedPlaces";
 import { useRoutes } from "../hooks/useRoutes";
-import { SavedPlace } from "../types/map";
+import { Place } from "../types/map";
 import { Route, SidebarMode } from "../types/sidebar";
 import { convertGooglePlaceToSaved } from "../utils/placeUtils";
 import AutocompleteControl from "../components/autocomplete/control";
@@ -27,7 +27,8 @@ import MapWithMarkers from "../components/map/mapWithMarkers";
 
 const API_KEY: string = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string;
 
-const MapPage = () => {
+// Separate component that uses useSearchParams
+function MapContent() {
   const searchParams = useSearchParams();
   const [selectedCountry, setSelectedCountry] =
     useState<SupportedCountry | null>(null);
@@ -42,11 +43,11 @@ const MapPage = () => {
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
-  const [placeToAdd, setPlaceToAdd] = useState<SavedPlace | null>(null);
+  const [placeToAdd, setPlaceToAdd] = useState<Place | null>(null);
   const [routeEditModalOpen, setRouteEditModalOpen] = useState(false);
   const [routeToEdit, setRouteToEdit] = useState<Route | null>(null);
   const [showRouteSelectionModal, setShowRouteSelectionModal] = useState(false);
-  const [pendingPlace, setPendingPlace] = useState<SavedPlace | null>(null);
+  const [pendingPlace, setPendingPlace] = useState<Place | null>(null);
 
   const {
     places,
@@ -120,19 +121,19 @@ const MapPage = () => {
   const handlePlaceSelect = (place: google.maps.places.Place | null) => {
     if (!place) return;
 
-    const savedPlace = convertGooglePlaceToSaved(place);
-    if (!savedPlace) return;
+    const Place = convertGooglePlaceToSaved(place);
+    if (!Place) return;
 
     if (sidebarMode === SidebarMode.ROUTE_PLANNING && activeRouteId) {
       // If in route planning mode with an active route, add directly to route
-      setPendingPlace(savedPlace);
+      setPendingPlace(Place);
       setShowRouteSelectionModal(true);
     } else {
-      addPlace(savedPlace);
+      addPlace(Place);
     }
   };
 
-  const handleQuickAddToActiveRoute = (place: SavedPlace) => {
+  const handleQuickAddToActiveRoute = (place: Place) => {
     if (activeRouteId && activeRoute) {
       const maxDay =
         activeRoute.places.length > 0
@@ -144,18 +145,18 @@ const MapPage = () => {
     setPendingPlace(null);
   };
 
-  const handleAddToRouteClick = (place: SavedPlace) => {
+  const handleAddToRouteClick = (place: Place) => {
     setPlaceToAdd(place);
     setModalOpen(true);
   };
 
-  const handleCreateNewRoute = (name: string, place: SavedPlace) => {
+  const handleCreateNewRoute = (name: string, place: Place) => {
     const newRoute = createRoute(name);
     addPlaceToRoute(newRoute.id, place, 1);
     setSidebarMode(SidebarMode.ROUTE_PLANNING);
   };
 
-  const handleAddToExistingRoute = (routeId: string, place: SavedPlace) => {
+  const handleAddToExistingRoute = (routeId: string, place: Place) => {
     const route = routes.find((r) => r.id === routeId);
     const maxDay =
       route && route.places.length > 0
@@ -202,7 +203,7 @@ const MapPage = () => {
   };
 
   // Add place to route with day selection
-  const handleAddPlaceToRouteWithDay = (place: SavedPlace) => {
+  const handleAddPlaceToRouteWithDay = (place: Place) => {
     if (activeRouteId) {
       const route = routes.find((r) => r.id === activeRouteId);
       if (!route) return;
@@ -278,13 +279,13 @@ const MapPage = () => {
   };
 
   // Get places for active route
-  const routePlaces: SavedPlace[] = React.useMemo(() => {
+  const routePlaces: Place[] = React.useMemo(() => {
     if (!activeRoute) return [];
 
     return activeRoute.places.map((rp) => {
-      const savedPlace = places.find((p) => p.placeId === rp.placeId);
+      const Place = places.find((p) => p.placeId === rp.placeId);
       return (
-        savedPlace || {
+        Place || {
           placeId: rp.placeId,
           displayName: rp.displayName,
           formattedAddress: rp.formattedAddress,
@@ -501,6 +502,24 @@ const MapPage = () => {
         </p>
       </div>
     </div>
+  );
+}
+
+// Main component with Suspense boundary
+const MapPage = () => {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-r from-yellow/30 to-background/80 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow mx-auto mb-4"></div>
+            <p className="text-brown-text text-lg">Loading map...</p>
+          </div>
+        </div>
+      }
+    >
+      <MapContent />
+    </Suspense>
   );
 };
 

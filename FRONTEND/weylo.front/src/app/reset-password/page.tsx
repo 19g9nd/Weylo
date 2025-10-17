@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -41,7 +41,7 @@ export default function ResetPasswordPage() {
     const result = await resetPassword({
       token,
       newPassword,
-      confirmNewPassword // ← теперь соответствует ResetPasswordDto
+      confirmNewPassword
     });
     
     if (result.success) {
@@ -137,5 +137,19 @@ export default function ResetPasswordPage() {
         </button>
       </div>
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="max-w-md w-full bg-white p-6 rounded-lg shadow">
+          <div className="text-center">Loading...</div>
+        </div>
+      </div>
+    }>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }

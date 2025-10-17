@@ -1,6 +1,6 @@
-import { SavedPlace } from "../types/map";
+import { Place } from "../types/map";
 
-export const convertGooglePlaceToSaved = (place: google.maps.places.Place): SavedPlace | null => {
+export const convertGooglePlaceToSaved = (place: google.maps.places.Place): Place | null => {
   if (!place || !place.location) {
     console.error("Invalid place object or missing location");
     return null;
@@ -20,7 +20,7 @@ export const convertGooglePlaceToSaved = (place: google.maps.places.Place): Save
       types: place.types,
     };
   } catch (error) {
-    console.error("Error converting Google Place to SavedPlace:", error);
+    console.error("Error converting Google Place to Place:", error);
     return null;
   }
 };

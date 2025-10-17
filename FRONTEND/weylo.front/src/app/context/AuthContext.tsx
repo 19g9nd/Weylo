@@ -68,31 +68,25 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [state, dispatch] = useReducer(authReducer, initialState);
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  // Check if we're on the client side
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
-    const initAuth = async () => {
-      const token = authService.getStoredToken();
+    // Only run auth initialization on client side
+    if (!isMounted) return;
 
-      if (token) {
-        if (!authService.isTokenExpired()) {
-          // Token is valid, set it and get user data
-          dispatch({ type: "SET_TOKEN", payload: token });
-          const userResponse = await authService.getCurrentUser();
-          if (userResponse.success && userResponse.data) {
-            dispatch({ type: "SET_USER", payload: userResponse.data });
-          } else {
-            await authService.logout();
-            dispatch({ type: "LOGOUT" });
-          }
-        } else {
-          // Token expired, try to refresh
-          const refreshResponse = await authService.refreshToken();
-          if (refreshResponse.success) {
-            // Refresh successful, get user data
-            dispatch({
-              type: "SET_TOKEN",
-              payload: authService.getStoredToken(),
-            });
+    const initAuth = async () => {
+      try {
+        const token = authService.getStoredToken();
+
+        if (token) {
+          if (!authService.isTokenExpired()) {
+            // Token is valid, set it and get user data
+            dispatch({ type: "SET_TOKEN", payload: token });
             const userResponse = await authService.getCurrentUser();
             if (userResponse.success && userResponse.data) {
               dispatch({ type: "SET_USER", payload: userResponse.data });
@@ -101,22 +95,42 @@ export function AuthProvider({ children }: AuthProviderProps) {
               dispatch({ type: "LOGOUT" });
             }
           } else {
-            // Refresh failed, clean everything
-            await authService.logout();
-            dispatch({ type: "LOGOUT" });
+            // Token expired, try to refresh
+            const refreshResponse = await authService.refreshToken();
+            if (refreshResponse.success) {
+              // Refresh successful, get user data
+              dispatch({
+                type: "SET_TOKEN",
+                payload: authService.getStoredToken(),
+              });
+              const userResponse = await authService.getCurrentUser();
+              if (userResponse.success && userResponse.data) {
+                dispatch({ type: "SET_USER", payload: userResponse.data });
+              } else {
+                await authService.logout();
+                dispatch({ type: "LOGOUT" });
+              }
+            } else {
+              // Refresh failed, clean everything
+              await authService.logout();
+              dispatch({ type: "LOGOUT" });
+            }
           }
+        } else {
+          // No token at all, make sure everything is clean
+          await authService.logout();
+          dispatch({ type: "LOGOUT" });
         }
-      } else {
-        // No token at all, make sure everything is clean
-        await authService.logout();
+      } catch (error) {
+        console.error("Auth initialization error:", error);
         dispatch({ type: "LOGOUT" });
+      } finally {
+        dispatch({ type: "SET_LOADING", payload: false });
       }
-
-      dispatch({ type: "SET_LOADING", payload: false });
     };
 
     initAuth();
-  }, []);
+  }, [isMounted]);
 
   const login = async (credentials: LoginDto) => {
     dispatch({ type: "SET_LOADING", payload: true });

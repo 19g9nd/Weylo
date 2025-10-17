@@ -1,15 +1,15 @@
 "use client";
 import React, { useState } from "react";
 import { Route } from "../../types/sidebar";
-import { SavedPlace } from "../../types/map";
+import { Place } from "../../types/map";
 
 interface AddToRouteModalProps {
   isOpen: boolean;
   onClose: () => void;
-  place: SavedPlace | null;
+  place: Place | null;
   routes: Route[];
-  onCreateNewRoute: (name: string, place: SavedPlace) => void;
-  onAddToExistingRoute: (routeId: string, place: SavedPlace) => void;
+  onCreateNewRoute: (name: string, place: Place) => void;
+  onAddToExistingRoute: (routeId: string, place: Place) => void;
 }
 
 const AddToRouteModal: React.FC<AddToRouteModalProps> = ({

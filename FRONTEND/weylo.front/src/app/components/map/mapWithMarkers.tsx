@@ -1,16 +1,16 @@
 "use client";
 import React from "react";
 import { AdvancedMarker, Pin, useMap } from "@vis.gl/react-google-maps";
-import { SavedPlace } from "../../types/map";
+import { Place } from "../../types/map";
 import { Route, SidebarMode } from "../../types/sidebar";
 import { SupportedCountry } from "../../types/country";
 
 interface MapWithMarkersProps {
-  places: SavedPlace[];
-  selectedPlace: SavedPlace | null;
+  places: Place[];
+  selectedPlace: Place | null;
   selectedCountry: SupportedCountry | null;
   sidebarMode: SidebarMode;
-  routePlaces: SavedPlace[];
+  routePlaces: Place[];
   activeRoute: Route | null;
 }
 
