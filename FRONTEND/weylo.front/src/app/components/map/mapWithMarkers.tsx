@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { AdvancedMarker, Pin, useMap } from "@vis.gl/react-google-maps";
-import { Place } from "../../types/map";
+import { Place } from "../../types/place";
 import { Route, SidebarMode } from "../../types/sidebar";
 import { SupportedCountry } from "../../types/country";
 

@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { Route } from "../../types/sidebar";
-import { Place } from "../../types/map";
+import { Place } from "../../types/place";
 
 interface AddToRouteModalProps {
   isOpen: boolean;

@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { Place } from "../types/map";
+import { Place } from "../types/place";
 import { placesService } from "../services/placesService";
 
 const STORAGE_KEY = "savedPlaces";

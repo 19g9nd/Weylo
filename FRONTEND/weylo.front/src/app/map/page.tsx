@@ -10,13 +10,13 @@ import {
 } from "@vis.gl/react-google-maps";
 import { useSavedPlaces } from "../hooks/useSavedPlaces";
 import { useRoutes } from "../hooks/useRoutes";
-import { Place } from "../types/map";
+import { Place } from "../types/place";
 import { Route, SidebarMode } from "../types/sidebar";
 import { convertGooglePlaceToSaved } from "../utils/placeUtils";
 import AutocompleteControl from "../components/autocomplete/control";
 import Head from "next/head";
 import Navigation from "../components/ui/navigation";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { countriesService } from "../services/countriesService";
 import AddToRouteModal from "../components/modal/addToRouteModal";
 import UnifiedSidebar from "../components/sidebar/unifiedSidebar";
@@ -24,6 +24,7 @@ import { SupportedCountry } from "../types/country";
 import { optimizeRouteDay } from "../utils/routeUtils";
 import RouteEditModal from "../components/modal/routeEditModal";
 import MapWithMarkers from "../components/map/mapWithMarkers";
+import { useFavourites } from "../hooks/useFavourites";
 
 const API_KEY: string = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string;
 
@@ -40,6 +41,15 @@ function MapContent() {
   const [sidebarMode, setSidebarMode] = useState<SidebarMode>(
     SidebarMode.WELCOME
   );
+
+  const {
+    favourites,
+    addToFavourites,
+    removeFromFavourites,
+    isFavourite,
+    isLoading: favouritesLoading,
+    error: favouritesError,
+  } = useFavourites();
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -76,7 +86,6 @@ function MapContent() {
     getRouteStats,
   } = useRoutes();
 
-  // Load country data from URL parameters - only once
   useEffect(() => {
     const loadCountryFromParams = async () => {
       const countryCode = searchParams.get("country");
@@ -330,7 +339,7 @@ function MapContent() {
         </div>
 
         {/* Mode Switcher */}
-        <div className="flex justify-center gap-2 mt-4">
+        <div className="flex justify-center gap-2 mt-4 flex-wrap">
           <button
             onClick={() => handleSwitchMode(SidebarMode.COUNTRY_EXPLORATION)}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
@@ -340,6 +349,16 @@ function MapContent() {
             }`}
           >
             🌍 Exploration
+          </button>
+          <button
+            onClick={() => handleSwitchMode(SidebarMode.FAVOURITES)}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              sidebarMode === SidebarMode.FAVOURITES
+                ? "bg-yellow text-white"
+                : "bg-white text-gray-700 hover:bg-gray-100"
+            }`}
+          >
+            ⭐ Favourites ({favourites.length})
           </button>
           <button
             onClick={() => handleSwitchMode(SidebarMode.MY_ROUTES)}
@@ -469,6 +488,9 @@ function MapContent() {
               onSwitchMode={handleSwitchMode}
               isLoading={isLoading}
               error={error}
+              favourites={favourites}
+              onAddToFavourites={addToFavourites}
+              onRemoveFromFavourites={removeFromFavourites}
             />
           </div>
         </div>

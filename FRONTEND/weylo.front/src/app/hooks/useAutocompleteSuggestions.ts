@@ -76,8 +76,6 @@ export function useAutocompleteSuggestions(
     setIsRequesting(true);
     setIsLoading(true);
 
-    console.log(`🔄 Autocomplete request #${requestCountRef.current}: "${debouncedInput}"`);
-
     AutocompleteSuggestion.fetchAutocompleteSuggestions(request)
       .then((res) => {
         setSuggestions(res.suggestions);

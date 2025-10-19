@@ -7,6 +7,7 @@ import { CountriesProvider } from "./context/CountriesContext";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { CategoriesProvider } from "./context/CategoriesContext";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,7 +35,9 @@ export default function RootLayout({
         <AuthProvider>
           <AdminProvider>
             <CountriesProvider>
-              <CategoriesProvider>{children}</CategoriesProvider>
+              <CategoriesProvider>
+                <ProtectedRoute>{children}</ProtectedRoute>
+              </CategoriesProvider>
             </CountriesProvider>
             <Analytics />
             <SpeedInsights />

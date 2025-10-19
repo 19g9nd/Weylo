@@ -230,7 +230,7 @@ namespace weylo.admin.api.Controllers
 
         // Helper methods
 
-        private async Task<City?> FindExistingCityAsync(string name, decimal latitude, decimal longitude, int countryId, int? excludeId = null)
+        private async Task<City?> FindExistingCityAsync(string name, double latitude, double longitude, int countryId, int? excludeId = null)
         {
             var normalizedName = NormalizeCityName(name);
 
@@ -250,7 +250,7 @@ namespace weylo.admin.api.Controllers
             if (byName != null) return byName;
 
             var byCoordinates = cities.FirstOrDefault(c =>
-                CalculateDistance(c.Latitude, c.Longitude, latitude, longitude) < 10.0m);
+                CalculateDistance(c.Latitude, c.Longitude, latitude, longitude) < 10.0);
 
             return byCoordinates;
         }
@@ -277,19 +277,19 @@ namespace weylo.admin.api.Controllers
                 : normalized;
         }
 
-        private decimal CalculateDistance(decimal lat1, decimal lon1, decimal lat2, decimal lon2)
+        private double CalculateDistance(double lat1, double lon1, double lat2, double lon2)
         {
-            const decimal EARTH_RADIUS_KM = 6371.0m;
+            const double EARTH_RADIUS_KM = 6371.0;
 
-            var dLat = (lat2 - lat1) * (decimal)Math.PI / 180.0m;
-            var dLon = (lon2 - lon1) * (decimal)Math.PI / 180.0m;
+            var dLat = (lat2 - lat1) * Math.PI / 180.0;
+            var dLon = (lon2 - lon1) * Math.PI / 180.0;
 
-            var a = (decimal)Math.Sin((double)dLat / 2.0) * (decimal)Math.Sin((double)dLat / 2.0) +
-                    (decimal)Math.Cos((double)lat1 * Math.PI / 180.0) *
-                    (decimal)Math.Cos((double)lat2 * Math.PI / 180.0) *
-                    (decimal)Math.Sin((double)dLon / 2.0) * (decimal)Math.Sin((double)dLon / 2.0);
+            var a = Math.Sin(dLat / 2.0) * Math.Sin(dLat / 2.0) +
+                    Math.Cos(lat1 * Math.PI / 180.0) *
+                    Math.Cos(lat2 * Math.PI / 180.0) *
+                    Math.Sin(dLon / 2.0) * Math.Sin(dLon / 2.0);
 
-            var c = 2.0m * (decimal)Math.Atan2(Math.Sqrt((double)a), Math.Sqrt(1.0 - (double)a));
+            var c = 2.0 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1.0 - a));
 
             return EARTH_RADIUS_KM * c;
         }
@@ -346,8 +346,8 @@ namespace weylo.admin.api.Controllers
     public class CreateCityRequest
     {
         public string Name { get; set; } = string.Empty;
-        public decimal Latitude { get; set; }
-        public decimal Longitude { get; set; }
+        public double Latitude { get; set; }  // ← decimal → double
+        public double Longitude { get; set; } // ← decimal → double
         public int CountryId { get; set; }
         public string GooglePlaceId { get; set; } = string.Empty;
     }
@@ -355,8 +355,8 @@ namespace weylo.admin.api.Controllers
     public class UpdateCityRequest
     {
         public string Name { get; set; } = string.Empty;
-        public decimal Latitude { get; set; }
-        public decimal Longitude { get; set; }
+        public double Latitude { get; set; }  // ← decimal → double
+        public double Longitude { get; set; } // ← decimal → double
         public int CountryId { get; set; }
         public string GooglePlaceId { get; set; } = string.Empty;
     }

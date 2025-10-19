@@ -25,7 +25,6 @@ namespace weylo.shared.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public ICollection<CategoryFilter> CategoryFilters { get; set; } = new List<CategoryFilter>();
-        // Навигационное свойство ко всем местам этой категории
         public virtual ICollection<Destination> Destinations { get; set; } = new List<Destination>();
     }
 }

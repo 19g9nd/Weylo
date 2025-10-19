@@ -5,7 +5,7 @@ import { SupportedCountry } from "../../types/country";
 
 interface Props {
   onPlaceSelect: (place: google.maps.places.Place | null) => void;
-  selectedCountry?: SupportedCountry | null; 
+  selectedCountry?: SupportedCountry | null;
 }
 
 export const AutocompleteCustom = ({
@@ -41,8 +41,14 @@ export const AutocompleteCustom = ({
             "types",
             "viewport",
             "rating",
+            "userRatingCount",
+            "internationalPhoneNumber",
+            "regularOpeningHours",
+            "editorialSummary", // Enterprise+?
             "svgIconMaskURI",
             "iconBackgroundColor",
+            "photos",
+            "priceLevel", // Enterprise+?
           ],
         });
 

@@ -1,4 +1,3 @@
-using System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using weylo.shared.Models;
@@ -103,12 +102,12 @@ namespace weylo.user.api.Services
                 var nearbyCities = await _context.Cities
                     .Where(c => c.CountryId == country.Id)
                     .Where(c =>
-                        Math.Abs(c.Latitude - request.Latitude) < 0.1m &&
-                        Math.Abs(c.Longitude - request.Longitude) < 0.1m)
+                        Math.Abs(c.Latitude - request.Latitude) < 0.1 &&
+                        Math.Abs(c.Longitude - request.Longitude) < 0.1)
                     .ToListAsync();
 
                 city = nearbyCities.FirstOrDefault(c =>
-                    CalculateDistance(c.Latitude, c.Longitude, request.Latitude, request.Longitude) < 10.0m);
+                    CalculateDistance(c.Latitude, c.Longitude, request.Latitude, request.Longitude) < 10.0);
 
                 if (city == null)
                 {
@@ -126,7 +125,7 @@ namespace weylo.user.api.Services
             }
 
             int categoryId = await DetermineCategoryFromGoogleTypeAsync(request.GoogleTypes);
-Console.WriteLine($"GoogleTypes received: {(request.GoogleTypes != null ? string.Join(", ", request.GoogleTypes) : "null")}");
+            Console.WriteLine($"GoogleTypes received: {(request.GoogleTypes != null ? string.Join(", ", request.GoogleTypes) : "null")}");
 
 
             // 5. Создаем новое место
@@ -171,7 +170,25 @@ Console.WriteLine($"GoogleTypes received: {(request.GoogleTypes != null ? string
             return _mapper.Map<DestinationDto>(destination);
         }
 
+
         // --- Public read/update/delete methods ---
+        public async Task<bool> DeleteDestinationAsync(int id)
+        {
+            var destination = await _context.Destinations
+                .Include(d => d.UserFavourites)
+                .Include(d => d.RouteItems)  // ← ДОБАВИТЬ проверку маршрутов
+                .FirstOrDefaultAsync(d => d.Id == id);
+
+            if (destination == null) return false;
+
+            // Проверяем И фавориты И маршруты
+            if (destination.UserFavourites.Any() || destination.RouteItems.Any())
+                return false;
+
+            _context.Destinations.Remove(destination);
+            await _context.SaveChangesAsync();
+            return true;
+        }
 
         public async Task<IEnumerable<DestinationDto>> GetDestinationsAsync()
         {
@@ -197,22 +214,9 @@ Console.WriteLine($"GoogleTypes received: {(request.GoogleTypes != null ? string
             return _mapper.Map<DestinationDto>(destination);
         }
 
-        public async Task<bool> DeleteDestinationAsync(int id)
-        {
-            var destination = await _context.Destinations.FindAsync(id);
-            if (destination == null) return false;
+        // === ФАВОРИТЫ ===
 
-            var isUsedInUserCollectionsWithRoutes = await _context.UserDestinations
-                .AnyAsync(ud => ud.DestinationId == id && ud.RouteDestinations.Any());
-
-            if (isUsedInUserCollectionsWithRoutes) return false;
-
-            _context.Destinations.Remove(destination);
-            await _context.SaveChangesAsync();
-            return true;
-        }
-
-        public async Task<UserDestinationDto> AddDestinationToUserAsync(int destinationId)
+        public async Task<UserFavouriteDto> AddToFavouritesAsync(int destinationId)
         {
             var userId = _currentUserService.UserId;
 
@@ -225,119 +229,108 @@ Console.WriteLine($"GoogleTypes received: {(request.GoogleTypes != null ? string
             if (destination == null)
                 throw new BadHttpRequestException($"Destination with id {destinationId} not found");
 
-            var existingUserDestination = await _context.UserDestinations
-                .FirstOrDefaultAsync(ud => ud.UserId == userId && ud.DestinationId == destinationId);
+            // ЗАМЕНА: UserDestinations → UserFavourites
+            var existingUserFavourite = await _context.UserFavourites
+                .FirstOrDefaultAsync(uf => uf.UserId == userId && uf.DestinationId == destinationId);
 
-            if (existingUserDestination != null)
-                throw new BadHttpRequestException($"Destination already added to user collection");
+            if (existingUserFavourite != null)
+                throw new BadHttpRequestException($"Destination already in favourites");
 
-            var userDestination = new UserDestination
+            // ЗАМЕНА: UserDestination → UserFavourite
+            var userFavourite = new UserFavourite
             {
                 UserId = userId,
                 DestinationId = destinationId,
-                SavedAt = DateTime.UtcNow,
-                IsFavorite = false
+                SavedAt = DateTime.UtcNow
             };
 
-            await _context.UserDestinations.AddAsync(userDestination);
+            await _context.UserFavourites.AddAsync(userFavourite);
             await _context.SaveChangesAsync();
 
-            await _context.Entry(userDestination)
-                .Reference(ud => ud.Destination)
+            await _context.Entry(userFavourite)
+                .Reference(uf => uf.Destination)
                 .Query()
                 .Include(d => d.Category)
                 .Include(d => d.City)
                     .ThenInclude(c => c.Country)
                 .LoadAsync();
 
-            return _mapper.Map<UserDestinationDto>(userDestination);
+            return _mapper.Map<UserFavouriteDto>(userFavourite);
         }
 
-        public async Task<bool> RemoveDestinationFromUserAsync(int destinationId)
+        public async Task<bool> RemoveFromFavouritesAsync(int destinationId)
         {
             var userId = _currentUserService.UserId;
 
-            var userDestination = await _context.UserDestinations
-                .FirstOrDefaultAsync(ud => ud.UserId == userId && ud.DestinationId == destinationId);
+            var userFavourite = await _context.UserFavourites
+                .FirstOrDefaultAsync(uf => uf.UserId == userId && uf.DestinationId == destinationId);
 
-            if (userDestination == null)
+            if (userFavourite == null)
                 return false;
 
-            var isUsedInRoutes = await _context.RouteDestinations
-                .AnyAsync(rd => rd.UserDestinationId == userDestination.Id);
-
-            if (isUsedInRoutes)
-                throw new BadHttpRequestException("Cannot remove destination that is used in routes");
-
-            _context.UserDestinations.Remove(userDestination);
+            // УБРАТЬ проверку на использование в маршрутах
+            // Фавориты можно удалять всегда, даже если они в маршрутах
+            _context.UserFavourites.Remove(userFavourite);
             await _context.SaveChangesAsync();
             return true;
         }
 
-        public async Task<UserDestinationDto> UpdateUserDestinationAsync(int userDestinationId, UpdateUserDestinationRequest request)
+        public async Task<UserFavouriteDto> UpdateFavouriteAsync(int userFavouriteId, UpdateUserFavouriteRequest request)
         {
             var userId = _currentUserService.UserId;
 
-            var userDestination = await _context.UserDestinations
-                .Include(ud => ud.Destination)
+            // ЗАМЕНА: UserDestinations → UserFavourites
+            var userFavourite = await _context.UserFavourites
+                .Include(uf => uf.Destination)
                     .ThenInclude(d => d.Category)
-                .Include(ud => ud.Destination)
+                .Include(uf => uf.Destination)
                     .ThenInclude(d => d.City)
                         .ThenInclude(c => c.Country)
-                .FirstOrDefaultAsync(ud => ud.Id == userDestinationId && ud.UserId == userId);
+                .FirstOrDefaultAsync(uf => uf.Id == userFavouriteId && uf.UserId == userId);
 
-            if (userDestination == null)
-                throw new BadHttpRequestException($"User destination with id {userDestinationId} not found");
-
-            if (request.IsFavorite.HasValue)
-                userDestination.IsFavorite = request.IsFavorite.Value;
+            if (userFavourite == null)
+                throw new BadHttpRequestException($"User favourite with id {userFavouriteId} not found");
 
             if (request.PersonalNotes != null)
-                userDestination.PersonalNotes = request.PersonalNotes;
+                userFavourite.PersonalNotes = request.PersonalNotes;
 
             await _context.SaveChangesAsync();
 
-            return _mapper.Map<UserDestinationDto>(userDestination);
+            return _mapper.Map<UserFavouriteDto>(userFavourite);
         }
 
-        public async Task<UserDestinationDto> ToggleFavoriteAsync(int userDestinationId)
+        public async Task<IEnumerable<UserFavouriteDto>> GetUserFavouritesAsync()
         {
             var userId = _currentUserService.UserId;
 
-            var userDestination = await _context.UserDestinations
-                .Include(ud => ud.Destination)
-                    .ThenInclude(d => d.Category)
-                .Include(ud => ud.Destination)
+            var userFavourites = await _context.UserFavourites
+                .Where(uf => uf.UserId == userId)
+                .Include(uf => uf.Destination)
                     .ThenInclude(d => d.City)
                         .ThenInclude(c => c.Country)
-                .FirstOrDefaultAsync(ud => ud.Id == userDestinationId && ud.UserId == userId);
-
-            if (userDestination == null)
-                throw new BadHttpRequestException($"User destination with id {userDestinationId} not found");
-
-            userDestination.IsFavorite = !userDestination.IsFavorite;
-            await _context.SaveChangesAsync();
-
-            return _mapper.Map<UserDestinationDto>(userDestination);
-        }
-
-        public async Task<IEnumerable<UserDestinationDto>> GetUserDestinationsAsync()
-        {
-            var userId = _currentUserService.UserId;
-
-            var userDestinations = await _context.UserDestinations
-                .Where(ud => ud.UserId == userId)
-                .Include(ud => ud.Destination)
-                    .ThenInclude(d => d.City)
-                        .ThenInclude(c => c.Country)
-                .Include(ud => ud.Destination)
+                .Include(uf => uf.Destination)
                     .ThenInclude(d => d.Category)
-                .Include(ud => ud.RouteDestinations)
-                .OrderByDescending(ud => ud.SavedAt)
+                // УБРАТЬ: .Include(uf => uf.RouteItems) - фаворитам не нужно знать о маршрутах
+                .OrderByDescending(uf => uf.SavedAt)
                 .ToListAsync();
 
-            return _mapper.Map<IEnumerable<UserDestinationDto>>(userDestinations);
+            return _mapper.Map<IEnumerable<UserFavouriteDto>>(userFavourites);
         }
+
+        public async Task<IEnumerable<DestinationDto>> GetPopularDestinationsAsync(int take = 20)
+        {
+            var destinations = await _context.Destinations
+                .Include(d => d.City).ThenInclude(c => c.Country)
+                .Include(d => d.Category)
+                .Where(d => d.CachedRating.HasValue)
+                .OrderByDescending(d => d.CachedRating)
+                .ThenByDescending(d => d.UserFavourites.Count)  // ← ВОТ ТАК
+                .Take(take)
+                .ToListAsync();
+
+            return _mapper.Map<IEnumerable<DestinationDto>>(destinations);
+        }
+
 
         public async Task<IEnumerable<DestinationDto>> GetDestinationsByCityAsync(int cityId)
         {
@@ -372,48 +365,11 @@ Console.WriteLine($"GoogleTypes received: {(request.GoogleTypes != null ? string
             return _mapper.Map<IEnumerable<DestinationDto>>(destinations);
         }
 
-        public async Task<DestinationDto?> UpdateDestinationCacheAsync(int id, UpdateCacheRequest request)
-        {
-            var destination = await _context.Destinations
-                .Include(d => d.City)
-                    .ThenInclude(c => c.Country)
-                .Include(d => d.Category)
-                .FirstOrDefaultAsync(d => d.Id == id);
-
-            if (destination == null) return null;
-
-            destination.CachedDescription = request.Description;
-            destination.CachedRating = request.Rating;
-            destination.CachedImageUrl = request.ImageUrl;
-            destination.CachedAddress = request.Address;
-            destination.CacheUpdatedAt = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
-
-            return _mapper.Map<DestinationDto>(destination);
-        }
-
-        public async Task<IEnumerable<DestinationDto>> GetPopularDestinationsAsync(int take = 20)
-        {
-            var destinations = await _context.Destinations
-                .Include(d => d.City)
-                    .ThenInclude(c => c.Country)
-                .Include(d => d.Category)
-                .Where(d => d.CachedRating.HasValue)
-                .OrderByDescending(d => d.CachedRating)
-                .ThenByDescending(d => d.UserDestinations.Count)
-                .Take(take)
-                .ToListAsync();
-
-            return _mapper.Map<IEnumerable<DestinationDto>>(destinations);
-        }
-
         #region Category Auto-Detection
-
         private async Task<int> DetermineCategoryFromGoogleTypeAsync(string[]? googleTypes)
         {
             if (googleTypes == null || !googleTypes.Any())
-                return await GetOrCreateDefaultCategoryAsync();
+                return await GetDefaultCategoryIdAsync();
 
             var types = googleTypes.Select(t => t.Trim().ToLower()).ToArray();
 
@@ -441,118 +397,16 @@ Console.WriteLine($"GoogleTypes received: {(request.GoogleTypes != null ? string
                 }
             }
 
-            return bestMatch?.Id ?? await GetOrCreateDefaultCategoryAsync();
+            return bestMatch?.Id ?? await GetDefaultCategoryIdAsync();
         }
 
-        private async Task<int> GetOrCreateDefaultCategoryAsync()
+        private async Task<int> GetDefaultCategoryIdAsync()
         {
             var defaultCategory = await _context.Categories
                 .FirstOrDefaultAsync(c => c.Name == "General");
 
-            if (defaultCategory != null)
-                return defaultCategory.Id;
-
-            // Создаем дефолтную категорию
-            defaultCategory = new Category
-            {
-                Name = "General",
-                Description = "General places of interest",
-                GoogleTypes = "point_of_interest,establishment",
-                Priority = 1,
-                Icon = "map-pin"
-            };
-
-            await _context.Categories.AddAsync(defaultCategory);
-            await _context.SaveChangesAsync();
-
-            _logger.LogInformation("Created default 'General' category");
-            return defaultCategory.Id;
+            return defaultCategory?.Id ?? 1; // Fallback
         }
-
-        private async Task CreateDefaultCategoriesAsync()
-        {
-            var defaultCategories = new[]
-            {
-                new Category
-                {
-                    Name = "Museums & Culture",
-                    Description = "Museums, galleries and cultural attractions",
-                    GoogleTypes = "museum,art_gallery,cultural_center",
-                    Priority = 10,
-                    Icon = "landmark"
-                },
-                new Category
-                {
-                    Name = "Restaurants & Dining",
-                    Description = "Places to eat and drink",
-                    GoogleTypes = "restaurant,cafe,bar,food,meal_takeaway,meal_delivery",
-                    Priority = 9,
-                    Icon = "utensils"
-                },
-                new Category
-                {
-                    Name = "Nature & Parks",
-                    Description = "Parks, gardens and natural attractions",
-                    GoogleTypes = "park,natural_feature,campground,hiking_area,national_park",
-                    Priority = 8,
-                    Icon = "tree"
-                },
-                new Category
-                {
-                    Name = "Shopping",
-                    Description = "Shopping centers and stores",
-                    GoogleTypes = "shopping_mall,store,clothing_store,convenience_store,supermarket",
-                    Priority = 7,
-                    Icon = "shopping-bag"
-                },
-                new Category
-                {
-                    Name = "Entertainment",
-                    Description = "Entertainment venues and activities",
-                    GoogleTypes = "movie_theater,amusement_park,night_club,casino,bowling_alley,stadium",
-                    Priority = 6,
-                    Icon = "ticket"
-                },
-                new Category
-                {
-                    Name = "Historical Sites",
-                    Description = "Historical landmarks and monuments",
-                    GoogleTypes = "historical_landmark,place_of_worship,monument,church,mosque,synagogue,temple",
-                    Priority = 9,
-                    Icon = "monument"
-                },
-                new Category
-                {
-                    Name = "Hotels & Lodging",
-                    Description = "Accommodation options",
-                    GoogleTypes = "lodging,hotel,resort,campground",
-                    Priority = 5,
-                    Icon = "bed"
-                },
-                new Category
-                {
-                    Name = "Tourist Attractions",
-                    Description = "Popular tourist destinations",
-                    GoogleTypes = "tourist_attraction,aquarium,zoo,landmark",
-                    Priority = 8,
-                    Icon = "camera"
-                },
-                new Category
-                {
-                    Name = "General",
-                    Description = "General places of interest",
-                    GoogleTypes = "point_of_interest,establishment",
-                    Priority = 1,
-                    Icon = "map-pin"
-                }
-            };
-
-            await _context.Categories.AddRangeAsync(defaultCategories);
-            await _context.SaveChangesAsync();
-
-            _logger.LogInformation("Created {Count} default categories", defaultCategories.Length);
-        }
-
         #endregion
 
         #region Helper Methods
@@ -588,20 +442,20 @@ Console.WriteLine($"GoogleTypes received: {(request.GoogleTypes != null ? string
             return cityName.Trim();
         }
 
-        private decimal CalculateDistance(decimal lat1, decimal lon1, decimal lat2, decimal lon2)
+        private double CalculateDistance(double lat1, double lon1, double lat2, double lon2)
         {
             const double R = 6371; // Радиус Земли в километрах
 
-            var dLat = (double)(lat2 - lat1) * Math.PI / 180;
-            var dLon = (double)(lon2 - lon1) * Math.PI / 180;
+            var dLat = (lat2 - lat1) * Math.PI / 180;
+            var dLon = (lon2 - lon1) * Math.PI / 180;
 
             var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
-                    Math.Cos((double)lat1 * Math.PI / 180) * Math.Cos((double)lat2 * Math.PI / 180) *
+                    Math.Cos(lat1 * Math.PI / 180) * Math.Cos(lat2 * Math.PI / 180) *
                     Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
 
             var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
 
-            return (decimal)(R * c);
+            return R * c;
         }
 
         #endregion

@@ -39,14 +39,14 @@ namespace weylo.user.api.Controllers
         }
 
         /// <summary>
-        /// Get user's saved destinations
+        /// Get user's favourite destinations
         /// </summary>
-        [HttpGet("my")]
-        public async Task<ActionResult<IEnumerable<UserDestinationDto>>> GetMyDestinations()
+        [HttpGet("favourites")]
+        public async Task<ActionResult<IEnumerable<UserFavouriteDto>>> GetFavourites()
         {
             try
             {
-                var destinations = await _service.GetUserDestinationsAsync();
+                var destinations = await _service.GetUserFavouritesAsync();
                 return Ok(destinations);
             }
             catch (Exception ex)
@@ -57,14 +57,14 @@ namespace weylo.user.api.Controllers
         }
 
         /// <summary>
-        /// Add a destination to user's collection
+        /// Add a destination to user's favourites
         /// </summary>
-        [HttpPost("my/{destinationId}")]
-        public async Task<ActionResult<UserDestinationDto>> AddToUser(int destinationId)
+        [HttpPost("favourites/{destinationId}")]
+        public async Task<ActionResult<UserFavouriteDto>> AddToFavourites(int destinationId)
         {
             try
             {
-                var result = await _service.AddDestinationToUserAsync(destinationId);
+                var result = await _service.AddToFavouritesAsync(destinationId);
                 return Ok(result);
             }
             catch (BadHttpRequestException ex)
@@ -79,14 +79,14 @@ namespace weylo.user.api.Controllers
         }
 
         /// <summary>
-        /// Remove a destination from user's collection
+        /// Remove a destination from user's favourites
         /// </summary>
-        [HttpDelete("my/{destinationId}")]
-        public async Task<IActionResult> RemoveFromUser(int destinationId)
+        [HttpDelete("favourites/{destinationId}")]
+        public async Task<IActionResult> RemoveFromFavourites(int destinationId)
         {
             try
             {
-                var removed = await _service.RemoveDestinationFromUserAsync(destinationId);
+                var removed = await _service.RemoveFromFavouritesAsync(destinationId);
                 if (!removed)
                     return NotFound(new { error = "Destination not found or already removed" });
 
@@ -106,14 +106,14 @@ namespace weylo.user.api.Controllers
         /// <summary>
         /// Update user-specific destination data (favorites, notes)
         /// </summary>
-        [HttpPut("my/{userDestinationId}")]
-        public async Task<ActionResult<UserDestinationDto>> UpdateUserDestination(
-            int userDestinationId,
-            [FromBody] UpdateUserDestinationRequest request)
+        [HttpPut("favourites/{userFavouriteId}")]
+        public async Task<ActionResult<UserFavouriteDto>> UpdateUserDestination(
+     int userFavouriteId,
+     [FromBody] UpdateUserFavouriteRequest request)
         {
             try
             {
-                var result = await _service.UpdateUserDestinationAsync(userDestinationId, request);
+                var result = await _service.UpdateFavouriteAsync(userFavouriteId, request);
                 return Ok(result);
             }
             catch (BadHttpRequestException ex)
@@ -122,30 +122,8 @@ namespace weylo.user.api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating user destination {UserDestinationId}", userDestinationId);
+                _logger.LogError(ex, "Error updating user destination {UserFavouriteId}", userFavouriteId);
                 return StatusCode(500, new { error = "Failed to update user destination" });
-            }
-        }
-
-        /// <summary>
-        /// Toggle favorite status for a user's destination
-        /// </summary>
-        [HttpPut("my/{userDestinationId}/favorite")]
-        public async Task<ActionResult<UserDestinationDto>> ToggleFavorite(int userDestinationId)
-        {
-            try
-            {
-                var result = await _service.ToggleFavoriteAsync(userDestinationId);
-                return Ok(result);
-            }
-            catch (BadHttpRequestException ex)
-            {
-                return BadRequest(new { error = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error toggling favorite for destination {UserDestinationId}", userDestinationId);
-                return StatusCode(500, new { error = "Failed to toggle favorite" });
             }
         }
 
@@ -264,24 +242,6 @@ namespace weylo.user.api.Controllers
             {
                 _logger.LogError(ex, "Error searching destinations with query: {Query}", query);
                 return StatusCode(500, new { error = "Search failed" });
-            }
-        }
-
-        /// <summary>
-        /// Update cached information for a destination
-        /// </summary>
-        [HttpPut("{id}/cache")]
-        public async Task<IActionResult> UpdateCache(int id, [FromBody] UpdateCacheRequest request)
-        {
-            try
-            {
-                var updated = await _service.UpdateDestinationCacheAsync(id, request);
-                return updated == null ? NotFound() : NoContent();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating cache for destination {DestinationId}", id);
-                return StatusCode(500, new { error = "Failed to update cache" });
             }
         }
     }

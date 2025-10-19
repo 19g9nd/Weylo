@@ -1,6 +1,7 @@
 export interface Place {
   backendId?: number;
   placeId: string;
+  userFavouriteId?: number;
   location: { lat: number; lng: number };
   displayName?: string;
   formattedAddress?: string;

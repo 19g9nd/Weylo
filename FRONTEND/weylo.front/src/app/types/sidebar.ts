@@ -1,8 +1,56 @@
+import { SupportedCountry } from "./country";
+import { Place } from "./place";
+
 export enum SidebarMode {
   WELCOME = "welcome",
   COUNTRY_EXPLORATION = "country_exploration",
   ROUTE_PLANNING = "route_planning",
   MY_ROUTES = "my_routes",
+  FAVOURITES = "favourites",
+}
+
+export interface UnifiedSidebarProps {
+  mode: SidebarMode;
+  places: Place[];
+  selectedPlaceId: string | null;
+  onPlaceSelect: (placeId: string | null) => void;
+  onRemovePlace: (place: Place) => void;
+  selectedCountry: SupportedCountry | null;
+  favourites: Place[];
+  onAddToFavourites: (place: Place) => void; // ← ДОБАВИЛИ
+  onRemoveFromFavourites: (place: Place) => void; // ← ДОБАВИЛИ
+
+  activeRoute: Route | null;
+  routes: Route[];
+  onSelectRoute: (routeId: string) => void;
+  onCreateRoute: () => void;
+  onEditRoute: (route: Route) => void;
+  onDeleteRoute: (routeId: string) => void;
+  onDuplicateRoute: (routeId: string) => void;
+
+  onAddPlaceToRoute: (place: Place) => void;
+  onRemovePlaceFromRoute: (placeId: string) => void;
+  onMovePlaceInRoute: (
+    routeId: string,
+    placeId: string,
+    newDayNumber: number,
+    newOrderInDay: number
+  ) => void;
+  onOptimizeRouteDay: (routeId: string, dayNumber: number) => void;
+
+  onAddDay: (routeId: string) => void;
+  onRemoveDay: (routeId: string, dayNumber: number) => void;
+
+  onGetRouteStats: (routeId: string) => {
+    totalPlaces: number;
+    totalDays: number;
+    avgPlacesPerDay: number;
+  } | null;
+  onGetRouteStatus: (route: Route) => { label: string; color: string };
+
+  onSwitchMode: (mode: SidebarMode) => void;
+  isLoading: boolean;
+  error: string | null;
 }
 
 export interface Route {

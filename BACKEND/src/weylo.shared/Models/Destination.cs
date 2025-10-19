@@ -11,8 +11,8 @@ namespace weylo.shared.Models
         [MaxLength(200)]
         public string Name { get; set; } = string.Empty;
 
-        public decimal Latitude { get; set; }
-        public decimal Longitude { get; set; }
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
 
         [ForeignKey(nameof(Category))]
         public int CategoryId { get; set; }
@@ -45,8 +45,8 @@ namespace weylo.shared.Models
         // Navigation properties
         public Category Category { get; set; } = null!;
         public City City { get; set; } = null!;
-
         public ICollection<FilterValue> FilterValues { get; set; } = new List<FilterValue>();
-        public ICollection<UserDestination> UserDestinations { get; set; } = new List<UserDestination>();
+        public ICollection<RouteItem> RouteItems { get; set; } = new List<RouteItem>();
+        public ICollection<UserFavourite> UserFavourites { get; set; } = new List<UserFavourite>();
     }
 }

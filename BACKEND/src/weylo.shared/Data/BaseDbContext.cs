@@ -13,9 +13,8 @@ namespace weylo.shared.Data
         public DbSet<City> Cities { get; set; }
         public DbSet<Destination> Destinations { get; set; }
         public DbSet<UserRoute> UserRoutes { get; set; }
-        public DbSet<RouteDay> RouteDays { get; set; }
-        public DbSet<UserDestination> UserDestinations { get; set; }
-        public DbSet<RouteDestination> RouteDestinations { get; set; }
+        public DbSet<UserFavourite> UserFavourites { get; set; }
+        public DbSet<RouteItem> RouteItems { get; set; }
         public DbSet<FilterAttribute> FilterAttributes { get; set; }
         public DbSet<FilterValue> FilterValues { get; set; }
         public DbSet<CategoryFilter> CategoryFilters { get; set; }
@@ -55,10 +54,11 @@ namespace weylo.shared.Data
                     .HasForeignKey(cf => cf.CategoryId)
                     .OnDelete(DeleteBehavior.Cascade);
 
+                // Restrict → Cascade for Destinations
                 entity.HasMany(c => c.Destinations)
                     .WithOne(d => d.Category)
                     .HasForeignKey(d => d.CategoryId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // --- Country ---
@@ -76,15 +76,17 @@ namespace weylo.shared.Data
                 entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
                 entity.Property(e => e.GooglePlaceId).HasMaxLength(255).IsRequired();
 
+                // Restrict → Cascade for Country
                 entity.HasOne(c => c.Country)
-                    .WithMany()
+                    .WithMany(co => co.Cities) // ДОБАВИЛИ навигацию
                     .HasForeignKey(c => c.CountryId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                    .OnDelete(DeleteBehavior.Cascade);
 
+                // Restrict → Cascade for Destinations
                 entity.HasMany(c => c.Destinations)
                     .WithOne(d => d.City)
                     .HasForeignKey(d => d.CityId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // --- Destination ---
@@ -105,10 +107,17 @@ namespace weylo.shared.Data
                     .HasForeignKey(fv => fv.DestinationId)
                     .OnDelete(DeleteBehavior.Cascade);
 
-                entity.HasMany(d => d.UserDestinations)
-                    .WithOne(ud => ud.Destination)
-                    .HasForeignKey(ud => ud.DestinationId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                // Restrict → Cascade for UserFavourites
+                entity.HasMany(d => d.UserFavourites)
+                    .WithOne(uf => uf.Destination)
+                    .HasForeignKey(uf => uf.DestinationId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Restrict → Cascade for RouteItems
+                entity.HasMany(d => d.RouteItems)
+                    .WithOne(ri => ri.Destination)
+                    .HasForeignKey(ri => ri.DestinationId)
+                    .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasIndex(e => e.GooglePlaceId).IsUnique();
                 entity.HasIndex(e => new { e.CityId, e.Name });
@@ -127,52 +136,51 @@ namespace weylo.shared.Data
                     .HasForeignKey(ur => ur.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
 
+                entity.HasMany(ur => ur.RouteItems)
+                    .WithOne(ri => ri.Route)
+                    .HasForeignKey(ri => ri.RouteId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
                 entity.HasIndex(e => e.UserId);
                 entity.HasIndex(e => e.Status);
             });
 
-            // --- RouteDay ---
-            modelBuilder.Entity<RouteDay>(entity =>
+            // --- UserFavourite ---
+            modelBuilder.Entity<UserFavourite>(entity =>
             {
-                entity.HasOne(rd => rd.UserRoute)
-                    .WithMany(ur => ur.RouteDays)
-                    .HasForeignKey(rd => rd.UserRouteId)
-                    .OnDelete(DeleteBehavior.Cascade);
-
-                entity.Property(e => e.Notes).HasMaxLength(500);
-                entity.HasIndex(rd => new { rd.UserRouteId, rd.DayNumber }).IsUnique();
-            });
-
-            // --- UserDestination ---
-            modelBuilder.Entity<UserDestination>(entity =>
-            {
-                entity.HasOne(ud => ud.User)
+                entity.HasOne(uf => uf.User)
                     .WithMany()
-                    .HasForeignKey(ud => ud.UserId)
+                    .HasForeignKey(uf => uf.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
 
-                entity.HasMany(ud => ud.RouteDestinations)
-                    .WithOne(rd => rd.UserDestination)
-                    .HasForeignKey(rd => rd.UserDestinationId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(uf => uf.Destination)
+                    .WithMany(d => d.UserFavourites) // UserFavourites (было UserFavorites)
+                    .HasForeignKey(uf => uf.DestinationId)
+                    .OnDelete(DeleteBehavior.Cascade);
 
-                entity.HasIndex(ud => new { ud.UserId, ud.DestinationId }).IsUnique();
-                entity.HasIndex(ud => ud.UserId);
-                entity.HasIndex(ud => ud.DestinationId);
+                entity.HasIndex(uf => new { uf.UserId, uf.DestinationId }).IsUnique();
+                entity.HasIndex(uf => uf.UserId);
+                entity.HasIndex(uf => uf.DestinationId);
             });
 
-            // --- RouteDestination ---
-            modelBuilder.Entity<RouteDestination>(entity =>
+            // --- RouteItem ---
+            modelBuilder.Entity<RouteItem>(entity =>
             {
                 entity.Property(e => e.UserNotes).HasMaxLength(500);
 
-                entity.HasOne(rd => rd.RouteDay)
-                    .WithMany(day => day.RouteDestinations)
-                    .HasForeignKey(rd => rd.RouteDayId)
+                entity.HasOne(ri => ri.Route)
+                    .WithMany(r => r.RouteItems)
+                    .HasForeignKey(ri => ri.RouteId)
                     .OnDelete(DeleteBehavior.Cascade);
 
-                entity.HasIndex(rd => new { rd.RouteDayId, rd.OrderInDay });
-                entity.HasIndex(rd => rd.UserDestinationId);
+                entity.HasOne(ri => ri.Destination)
+                    .WithMany(d => d.RouteItems)
+                    .HasForeignKey(ri => ri.DestinationId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(ri => new { ri.RouteId, ri.DayNumber, ri.OrderInDay });
+                entity.HasIndex(ri => ri.RouteId);
+                entity.HasIndex(ri => ri.DestinationId);
             });
 
             // --- FilterAttribute ---
@@ -181,6 +189,11 @@ namespace weylo.shared.Data
                 entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
                 entity.Property(e => e.DisplayName).HasMaxLength(100).IsRequired();
                 entity.Property(e => e.DataType).HasMaxLength(50).IsRequired();
+
+                entity.HasMany(fa => fa.CategoryFilters)
+                    .WithOne(cf => cf.FilterAttribute)
+                    .HasForeignKey(cf => cf.FilterAttributeId)
+                    .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasIndex(e => e.Name);
                 entity.HasIndex(e => e.DataType);
@@ -196,6 +209,11 @@ namespace weylo.shared.Data
                     .HasForeignKey(fv => fv.FilterAttributeId)
                     .OnDelete(DeleteBehavior.Cascade);
 
+                entity.HasOne(fv => fv.Destination)
+                    .WithMany(d => d.FilterValues)
+                    .HasForeignKey(fv => fv.DestinationId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
                 entity.HasIndex(fv => new { fv.DestinationId, fv.FilterAttributeId }).IsUnique();
                 entity.HasIndex(fv => fv.Value);
                 entity.HasIndex(fv => fv.FilterAttributeId);
@@ -205,6 +223,11 @@ namespace weylo.shared.Data
             modelBuilder.Entity<CategoryFilter>(entity =>
             {
                 entity.HasKey(cf => new { cf.CategoryId, cf.FilterAttributeId });
+
+                entity.HasOne(cf => cf.Category)
+                    .WithMany(c => c.CategoryFilters)
+                    .HasForeignKey(cf => cf.CategoryId)
+                    .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasOne(cf => cf.FilterAttribute)
                     .WithMany(fa => fa.CategoryFilters)

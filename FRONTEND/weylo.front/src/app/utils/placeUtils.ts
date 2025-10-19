@@ -1,4 +1,4 @@
-import { Place } from "../types/map";
+import { Place } from "../types/place";
 
 export const convertGooglePlaceToSaved = (place: google.maps.places.Place): Place | null => {
   if (!place || !place.location) {

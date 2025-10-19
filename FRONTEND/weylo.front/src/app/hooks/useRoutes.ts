@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { Route, RoutePlace } from "../types/sidebar";
-import { Place } from "../types/map";
+import { Place } from "../types/place";
 import { calculateRouteStats } from "../utils/routeUtils";
 
 const ROUTES_STORAGE_KEY = "weylo_routes";
@@ -312,7 +312,7 @@ export const useRoutes = () => {
 // "use client";
 // import { useState, useEffect, useCallback } from "react";
 // import { Route, RoutePlace } from "../types/sidebar";
-// import { Place } from "../types/map";
+// import { Place } from "../types/place";
 // import { useRouteDestinations } from "./useRouteDestinations";
 // import {
 //   calculateRouteStats,

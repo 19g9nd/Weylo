@@ -27,9 +27,6 @@ namespace weylo.shared.Models
 
         // Navigation property
         public User User { get; set; } = null!;
-
-        // List of destinations in the route
-        public ICollection<RouteDestination> RouteDestinations { get; set; } = new List<RouteDestination>();
-        public ICollection<RouteDay> RouteDays { get; set; } = new List<RouteDay>();
+        public ICollection<RouteItem> RouteItems { get; set; } = new List<RouteItem>();
     }
 }

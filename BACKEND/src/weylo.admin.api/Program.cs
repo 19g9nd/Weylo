@@ -163,6 +163,63 @@ builder.Services.AddAuthentication(options =>
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero
     };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnAuthenticationFailed = context =>
+        {
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogWarning("Authentication failed: {Error}", context.Exception.Message);
+
+            if (context.HttpContext.Request.Path.StartsWithSegments("/swagger"))
+                return Task.CompletedTask;
+
+            context.Response.StatusCode = 401;
+            context.Response.ContentType = "application/json";
+
+            var errorMessage = context.Exception switch
+            {
+                SecurityTokenExpiredException => "Token has expired",
+                SecurityTokenNotYetValidException => "Token is not yet valid",
+                SecurityTokenInvalidSignatureException => "Invalid token signature",
+                SecurityTokenInvalidIssuerException => "Invalid token issuer",
+                SecurityTokenInvalidAudienceException => "Invalid token audience",
+                _ => "Invalid authentication token"
+            };
+
+            var response = new
+            {
+                error = "Authentication failed",
+                message = errorMessage,
+                details = "Please log in again"
+            };
+
+            return context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(response));
+        },
+
+        OnChallenge = context =>
+        {
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogWarning("JWT challenge: {Error}", context.ErrorDescription);
+
+            if (context.HttpContext.Request.Path.StartsWithSegments("/swagger"))
+                return Task.CompletedTask;
+
+            context.HandleResponse();
+
+            context.Response.StatusCode = 401;
+            context.Response.ContentType = "application/json";
+
+            var response = new
+            {
+                error = "User not authenticated",
+                message = "Please log in to access this resource",
+                path = context.HttpContext.Request.Path
+            };
+
+            return context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(response));
+        }
+    };
 });
 
 // Register services

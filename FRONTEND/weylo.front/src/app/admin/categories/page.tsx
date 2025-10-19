@@ -7,6 +7,24 @@ import { useCategories } from "../../context/CategoriesContext";
 import Navigation from "../../components/ui/navigation";
 import { Category, CategoryDto } from "../../types/category";
 
+// Компонент иконок
+const CategoryIcon = ({ name }: { name: string | null }) => {
+  const icons: { [key: string]: string } = {
+    ticket: "🎫",
+    "map-pin": "📍",
+    monument: "🏛️",
+    bed: "🛏️",
+    landmark: "🏛️",
+    tree: "🌳",
+    utensils: "🍽️",
+    "shopping-bag": "🛍️",
+    camera: "📸",
+  };
+
+  const iconName = name || "map-pin";
+  return <span className="text-2xl">{icons[iconName] || "📁"}</span>;
+};
+
 export default function CategoriesPage() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { getCategories, createCategory, updateCategory, deleteCategory } =
@@ -71,7 +89,6 @@ export default function CategoriesPage() {
     }
 
     try {
-      // Ensure we send proper null values instead of empty strings
       const categoryData: CategoryDto = {
         name: newCategory.name.trim(),
         description: newCategory.description?.trim() || null,
@@ -102,7 +119,6 @@ export default function CategoriesPage() {
     }
 
     try {
-      // Ensure we send proper null values instead of empty strings
       const categoryData: CategoryDto = {
         name: newCategory.name.trim(),
         description: newCategory.description?.trim() || null,
@@ -171,15 +187,11 @@ export default function CategoriesPage() {
 
   const formatGoogleTypes = (
     googleTypes: string | null | undefined
-  ): string => {
-    if (!googleTypes) return "Not set";
-    return googleTypes
-      .split(",")
-      .map((type) => type.trim())
-      .join(", ");
+  ): string[] => {
+    if (!googleTypes) return [];
+    return googleTypes.split(",").map((type) => type.trim());
   };
 
-  // Helper function to safely get input values
   const getInputValue = (value: string | null | undefined): string => {
     return value || "";
   };
@@ -205,29 +217,31 @@ export default function CategoriesPage() {
       <div className="min-h-screen bg-background p-4 sm:p-6">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
             <div className="flex-1">
               <h1 className="text-2xl sm:text-3xl font-bold text-main-text">
-                Categories Management
+                🗂️ Categories Management
               </h1>
-              <p className="text-brown-text mt-1 sm:mt-2 text-sm sm:text-base">
+              <p className="text-brown-text mt-2 text-sm sm:text-base">
                 Manage place categories and Google Places types mapping
               </p>
             </div>
-            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+            <div className="flex flex-wrap gap-3 w-full sm:w-auto">
               <button
                 onClick={() => {
                   resetForm();
                   setShowAddForm(true);
                 }}
-                className="flex-1 sm:flex-none bg-yellow hover:bg-yellow/90 text-main-text px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm"
+                className="bg-yellow hover:bg-yellow/90 text-main-text font-bold px-6 py-3 rounded-lg transition-colors flex items-center gap-2"
               >
-                Add Category
+                <span>➕</span>
+                Add New Category
               </button>
               <button
                 onClick={fetchCategories}
-                className="flex-1 sm:flex-none bg-gray-200 hover:bg-gray-300 text-main-text px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm"
+                className="bg-gray-200 hover:bg-gray-300 text-main-text font-bold px-6 py-3 rounded-lg transition-colors flex items-center gap-2"
               >
+                <span>🔄</span>
                 Refresh
               </button>
             </div>
@@ -235,9 +249,12 @@ export default function CategoriesPage() {
 
           {/* Messages */}
           {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 sm:mb-6 text-sm">
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
               <div className="flex justify-between items-center">
-                <span>{error}</span>
+                <span className="flex items-center gap-2">
+                  <span>⚠️</span>
+                  {error}
+                </span>
                 <button
                   onClick={() => setError("")}
                   className="text-lg font-bold hover:text-red-900 ml-2"
@@ -249,9 +266,12 @@ export default function CategoriesPage() {
           )}
 
           {success && (
-            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4 sm:mb-6 text-sm">
+            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6">
               <div className="flex justify-between items-center">
-                <span>{success}</span>
+                <span className="flex items-center gap-2">
+                  <span>✅</span>
+                  {success}
+                </span>
                 <button
                   onClick={() => setSuccess("")}
                   className="text-lg font-bold hover:text-green-900 ml-2"
@@ -264,14 +284,16 @@ export default function CategoriesPage() {
 
           {/* Add/Edit Category Form */}
           {(showAddForm || editingCategory) && (
-            <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
-              <h2 className="text-lg sm:text-xl font-semibold text-main-text mb-3 sm:mb-4">
+            <div className="bg-white rounded-xl border border-yellow/20 shadow-lg p-6 mb-8">
+              <h2 className="text-xl font-bold text-main-text mb-6 flex items-center gap-2">
+                <span>🎯</span>
                 {editingCategory ? "Edit Category" : "Add New Category"}
               </h2>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-brown-text mb-1">
+                    <label className="block text-sm font-medium text-brown-text mb-2">
                       Category Name *
                     </label>
                     <input
@@ -280,28 +302,38 @@ export default function CategoriesPage() {
                       onChange={(e) =>
                         setNewCategory({ ...newCategory, name: e.target.value })
                       }
-                      placeholder="Enter category name (e.g., Museums, Restaurants)"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow text-sm"
+                      placeholder="Museums & Culture"
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-yellow"
                     />
                   </div>
+
                   <div>
-                    <label className="block text-sm font-medium text-brown-text mb-1">
+                    <label className="block text-sm font-medium text-brown-text mb-2">
                       Icon
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={getInputValue(newCategory.icon)}
                       onChange={(e) =>
                         setNewCategory({ ...newCategory, icon: e.target.value })
                       }
-                      placeholder="Icon name or URL"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow text-sm"
-                    />
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-yellow"
+                    >
+                      <option value="">Select icon...</option>
+                      <option value="ticket">🎫 Entertainment</option>
+                      <option value="map-pin">📍 General</option>
+                      <option value="monument">🏛️ Historical</option>
+                      <option value="bed">🛏️ Hotels</option>
+                      <option value="landmark">🏛️ Museums</option>
+                      <option value="tree">🌳 Nature</option>
+                      <option value="utensils">🍽️ Restaurants</option>
+                      <option value="shopping-bag">🛍️ Shopping</option>
+                      <option value="camera">📸 Tourist</option>
+                    </select>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-brown-text mb-1">
+                  <label className="block text-sm font-medium text-brown-text mb-2">
                     Description
                   </label>
                   <textarea
@@ -312,14 +344,14 @@ export default function CategoriesPage() {
                         description: e.target.value,
                       })
                     }
-                    placeholder="Enter category description"
-                    rows={2}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow text-sm"
+                    placeholder="Describe what this category includes..."
+                    rows={3}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-yellow"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-brown-text mb-1">
+                  <label className="block text-sm font-medium text-brown-text mb-2">
                     Google Places Types
                   </label>
                   <input
@@ -331,23 +363,23 @@ export default function CategoriesPage() {
                         googleTypes: e.target.value,
                       })
                     }
-                    placeholder="museum,tourist_attraction (comma-separated)"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow text-sm"
+                    placeholder="museum,art_gallery,tourist_attraction"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-yellow"
                   />
-                  <p className="text-xs text-brown-text mt-1">
-                    Enter Google Places API types separated by commas. Example:
-                    museum,art_gallery,tourist_attraction
+                  <p className="text-xs text-brown-text mt-2">
+                    Enter Google Places API types separated by commas. These
+                    will be used to automatically categorize places.
                   </p>
                 </div>
 
-                <div className="flex gap-3 pt-2">
+                <div className="flex gap-4 pt-4">
                   <button
                     onClick={
                       editingCategory
                         ? handleUpdateCategory
                         : handleCreateCategory
                     }
-                    className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm"
+                    className="flex-1 bg-yellow hover:bg-yellow/90 text-main-text font-bold py-3 rounded-lg transition-colors"
                   >
                     {editingCategory ? "Update Category" : "Create Category"}
                   </button>
@@ -356,7 +388,7 @@ export default function CategoriesPage() {
                       resetForm();
                       setShowAddForm(false);
                     }}
-                    className="flex-1 bg-gray-200 hover:bg-gray-300 text-main-text px-4 py-2 rounded-lg font-medium transition-colors text-sm"
+                    className="flex-1 bg-gray-200 hover:bg-gray-300 text-main-text font-bold py-3 rounded-lg transition-colors"
                   >
                     Cancel
                   </button>
@@ -365,185 +397,156 @@ export default function CategoriesPage() {
             </div>
           )}
 
-          {/* Categories Table/Cards */}
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          {/* Categories Grid */}
+          <div className="mb-8">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold text-main-text">
+                📋 All Categories ({categories.length})
+              </h2>
+              {categories.length > 0 && (
+                <span className="text-brown-text text-sm">
+                  Click on a category to edit
+                </span>
+              )}
+            </div>
+
             {loading ? (
               <div className="flex justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow"></div>
               </div>
             ) : categories.length === 0 ? (
-              <div className="text-center py-12 text-brown-text text-sm sm:text-base px-4">
-                No categories found. Add your first category to get started.
+              <div className="text-center py-16 bg-white rounded-xl border-2 border-dashed border-gray-300">
+                <div className="text-6xl mb-4">🗂️</div>
+                <h3 className="text-xl font-semibold text-main-text mb-2">
+                  No Categories Yet
+                </h3>
+                <p className="text-brown-text mb-6">
+                  Create your first category to start organizing places
+                </p>
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  className="bg-yellow hover:bg-yellow/90 text-main-text font-bold px-6 py-3 rounded-lg transition-colors"
+                >
+                  Create First Category
+                </button>
               </div>
             ) : (
-              <>
-                {/* Desktop Table */}
-                <div className="hidden lg:block overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-brown-text uppercase tracking-wider">
-                          Category
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-brown-text uppercase tracking-wider">
-                          Description
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-brown-text uppercase tracking-wider">
-                          Google Types
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-brown-text uppercase tracking-wider">
-                          Created
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-brown-text uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {categories.map((category) => (
-                        <tr key={category.id}>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              {category.icon && (
-                                <span className="mr-3 text-lg">
-                                  {category.icon}
-                                </span>
-                              )}
-                              <div>
-                                <div className="text-sm font-medium text-main-text">
-                                  {category.name}
-                                </div>
-                                {category.icon && (
-                                  <div className="text-xs text-brown-text">
-                                    {category.icon}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm text-brown-text max-w-xs">
-                              {category.description || "No description"}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div
-                              className="text-sm text-brown-text max-w-xs font-mono bg-gray-50 p-2 rounded"
-                              title={category.googleTypes || ""}
-                            >
-                              {formatGoogleTypes(category.googleTypes)}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-brown-text">
-                              {new Date(
-                                category.createdAt
-                              ).toLocaleDateString()}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                            <button
-                              onClick={() => startEdit(category)}
-                              className="text-blue-600 hover:text-blue-900 transition-colors"
-                              title="Edit category"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDeleteCategory(category)}
-                              className="text-red-600 hover:text-red-900 transition-colors"
-                              title="Delete category"
-                            >
-                              Delete
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Mobile Cards */}
-                <div className="lg:hidden space-y-4 p-4">
-                  {categories.map((category) => (
-                    <div
-                      key={category.id}
-                      className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm"
-                    >
-                      <div className="space-y-3">
-                        {/* Header */}
-                        <div className="flex justify-between items-start">
-                          <div className="flex items-center">
-                            {category.icon && (
-                              <span className="mr-2 text-lg">
-                                {category.icon}
-                              </span>
-                            )}
-                            <h3 className="font-semibold text-main-text text-lg">
-                              {category.name}
-                            </h3>
-                          </div>
-                        </div>
-
-                        {/* Details */}
-                        <div className="space-y-2 text-sm">
-                          <div>
-                            <span className="text-brown-text font-medium">
-                              Description:
-                            </span>
-                            <div className="text-main-text mt-1">
-                              {category.description || "No description"}
-                            </div>
-                          </div>
-
-                          <div>
-                            <span className="text-brown-text font-medium">
-                              Google Types:
-                            </span>
-                            <div className="text-main-text font-mono text-xs mt-1 bg-gray-50 p-2 rounded">
-                              {formatGoogleTypes(category.googleTypes)}
-                            </div>
-                          </div>
-
-                          <div>
-                            <span className="text-brown-text font-medium">
-                              Created:
-                            </span>
-                            <div className="text-main-text">
-                              {new Date(
-                                category.createdAt
-                              ).toLocaleDateString()}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex gap-2 pt-2 border-t border-gray-100">
-                          <button
-                            onClick={() => startEdit(category)}
-                            className="flex-1 bg-blue-50 text-blue-600 hover:bg-blue-100 py-2 px-3 rounded-md font-medium transition-colors text-sm border border-blue-200"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDeleteCategory(category)}
-                            className="flex-1 bg-red-50 text-red-600 hover:bg-red-100 py-2 px-3 rounded-md font-medium transition-colors text-sm border border-red-200"
-                          >
-                            Delete
-                          </button>
-                        </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {categories.map((category) => (
+                  <div
+                    key={category.id}
+                    className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-all duration-200 cursor-pointer hover:border-yellow/50"
+                    onClick={() => startEdit(category)}
+                  >
+                    {/* Header with Icon */}
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="bg-yellow/20 p-3 rounded-xl">
+                        <CategoryIcon name={category.icon ?? null} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-lg text-main-text truncate">
+                          {category.name}
+                        </h3>
+                        <p className="text-brown-text text-sm truncate">
+                          {category.description || "No description"}
+                        </p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </>
+
+                    {/* Google Types */}
+                    <div className="mb-4">
+                      <span className="text-xs font-medium text-brown-text uppercase tracking-wide block mb-2">
+                        Google Types
+                      </span>
+                      <div className="flex flex-wrap gap-1">
+                        {formatGoogleTypes(category.googleTypes).map(
+                          (type, index) => (
+                            <span
+                              key={index}
+                              className="bg-gray-100 text-main-text px-2 py-1 rounded text-xs font-medium"
+                            >
+                              {type}
+                            </span>
+                          )
+                        )}
+                        {formatGoogleTypes(category.googleTypes).length ===
+                          0 && (
+                          <span className="text-gray-400 text-xs">
+                            Not configured
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="flex justify-between items-center pt-4 border-t border-gray-100">
+                      <span className="text-brown-text text-xs">
+                        Created:{" "}
+                        {new Date(category.createdAt).toLocaleDateString()}
+                      </span>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startEdit(category);
+                          }}
+                          className="bg-yellow hover:bg-yellow/90 text-main-text px-3 py-1 rounded text-sm font-medium transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteCategory(category);
+                          }}
+                          className="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1 rounded text-sm font-medium transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
-          {/* Statistics */}
+          {/* Quick Stats */}
           {!loading && categories.length > 0 && (
-            <div className="mt-4 sm:mt-6 text-sm text-brown-text text-center sm:text-left">
-              Total categories: <strong>{categories.length}</strong>
+            <div className="bg-yellow/10 rounded-xl p-6 border border-yellow/20">
+              <h3 className="font-bold text-main-text mb-3">📊 Quick Stats</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div>
+                  <div className="text-2xl font-bold text-main-text">
+                    {categories.length}
+                  </div>
+                  <div className="text-brown-text text-sm">
+                    Total Categories
+                  </div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-main-text">
+                    {categories.filter((c) => c.googleTypes).length}
+                  </div>
+                  <div className="text-brown-text text-sm">
+                    With Google Types
+                  </div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-main-text">
+                    {categories.filter((c) => c.description).length}
+                  </div>
+                  <div className="text-brown-text text-sm">
+                    With Description
+                  </div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-main-text">
+                    {categories.filter((c) => c.icon).length}
+                  </div>
+                  <div className="text-brown-text text-sm">With Icons</div>
+                </div>
+              </div>
             </div>
           )}
         </div>

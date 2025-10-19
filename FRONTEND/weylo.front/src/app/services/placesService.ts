@@ -1,4 +1,4 @@
-import { BackendPlace, Place } from "../types/map";
+import { BackendPlace, Place } from "../types/place";
 import { ApiResponse } from "../types/shared";
 import httpClient from "./httpClient";
 

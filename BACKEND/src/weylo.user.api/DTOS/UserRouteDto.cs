@@ -1,9 +1,10 @@
 namespace weylo.user.api.DTOS
 {
-    public class RouteDto
+    public class UserRouteDto
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
+        public int UserId { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public string? Notes { get; set; }
@@ -11,10 +12,8 @@ namespace weylo.user.api.DTOS
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
 
-        // Statistics
-        public int TotalDays { get; set; }
-        public int TotalDestinations { get; set; }
-        public int DestinationsCount { get; set; }
-        public int VisitedDestinationsCount { get; set; }
+        // Navigation
+        public UserDto? User { get; set; }
+        public List<RouteItemDto> RouteItems { get; set; } = new();
     }
 }

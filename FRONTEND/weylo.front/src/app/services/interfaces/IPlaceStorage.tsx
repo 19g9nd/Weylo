@@ -1,4 +1,4 @@
-import { Place } from "../../types/map";
+import { Place } from "../../types/place";
 
 export interface IPlaceStorage {
   getAll(): Promise<Place[]>;

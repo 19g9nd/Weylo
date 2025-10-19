@@ -1,5 +1,5 @@
 import { IPlaceStorage } from './interfaces/IPlaceStorage';
-import { Place } from '../types/map';
+import { Place } from '../types/place';
 
 const STORAGE_KEY = 'savedPlaces';
 
