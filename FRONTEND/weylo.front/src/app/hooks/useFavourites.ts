@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { Place } from "../types/place";
+import { FavouritePlace } from "../types/place";
 import { favouritesService } from "../services/favouritesService";
-import { transformBackendToFrontendPlace } from "../utils/transformers";
+import { localStorageService } from "../services/localStorageService";
 
 export const useFavourites = () => {
-  const [favourites, setFavourites] = useState<Place[]>([]);
+  const [favourites, setFavourites] = useState<FavouritePlace[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,38 +17,39 @@ export const useFavourites = () => {
     setError(null);
     try {
       const data = await favouritesService.getFavourites();
-      const transformedFavourites = data.map(transformBackendToFrontendPlace);
-      setFavourites(transformedFavourites);
+      setFavourites(data);
+
+      await localStorageService.saveFavourites(data);
     } catch (err) {
-      console.error("Error loading favourites:", err);
+      console.error("Error loading favourites from backend:", err);
       setError(
         err instanceof Error ? err.message : "Failed to load favourites"
       );
-      // Fallback to localStorage
-      const saved = localStorage.getItem("weylo-favourites");
-      if (saved) {
-        try {
-          setFavourites(JSON.parse(saved));
-        } catch (parseError) {
-          console.error("Error parsing local favourites:", parseError);
-        }
+
+      // Fallback localStorage
+      try {
+        const localFavourites = await localStorageService.getFavourites();
+        setFavourites(localFavourites);
+      } catch (localError) {
+        console.error(
+          "Error loading favourites from localStorage:",
+          localError
+        );
       }
     } finally {
       setIsLoading(false);
     }
   };
 
-  const addToFavourites = async (place: Place) => {
+  const addToFavourites = async (place: FavouritePlace) => {
     try {
       if (!place.backendId) {
         throw new Error("Place is not from catalogue - missing backendId");
       }
-
       await favouritesService.addToFavourites(place.backendId);
-
       setFavourites((prev) => {
         const updated = [...prev, place];
-        localStorage.setItem("weylo-favourites", JSON.stringify(updated));
+        localStorageService.saveFavourites(updated);
         return updated;
       });
     } catch (err) {
@@ -57,17 +58,17 @@ export const useFavourites = () => {
     }
   };
 
-  const removeFromFavourites = async (place: Place) => {
+  const removeFromFavourites = async (place: FavouritePlace) => {
     try {
       if (!place.backendId) {
         throw new Error("Place is not from catalogue - missing backendId");
       }
-
       await favouritesService.removeFromFavourites(place.backendId);
 
       setFavourites((prev) => {
         const updated = prev.filter((p) => p.placeId !== place.placeId);
-        localStorage.setItem("weylo-favourites", JSON.stringify(updated));
+        // Сохраняем через сервис
+        localStorageService.saveFavourites(updated);
         return updated;
       });
     } catch (err) {

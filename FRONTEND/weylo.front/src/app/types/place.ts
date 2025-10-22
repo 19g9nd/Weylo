@@ -1,32 +1,33 @@
-export interface Place {
-  backendId?: number;
+export interface BasePlace {
+  backendId: number;
   placeId: string;
-  userFavouriteId?: number;
   location: { lat: number; lng: number };
-  displayName?: string;
+  displayName: string;
   formattedAddress?: string;
   rating?: number | null;
   userRatingsTotal?: number | null;
   googleType?: string;
   types?: string[];
   primaryTypeDisplayName?: { text: string };
-  note?: string;
   photos?: { getURI: () => string }[];
   category?: string;
   categoryValue?: string;
+  city?: string;
+  country?: string;
+  createdAt?: Date;
 }
 
-export interface BackendPlace {
-  id: number;
-  googlePlaceId: string;
-  name: string;
-  latitude: number;
-  longitude: number;
-  cachedAddress?: string;
-  cachedRating?: number;
-  cachedImageUrl?: string;
-  googleType?: string;
-  city: string;
-  category: string;
-  createdAt: string;
+export interface FavouritePlace extends BasePlace {
+  userFavouriteId: number;
+  personalNotes?: string;
+  savedAt: Date;
+}
+
+export interface RoutePlace extends BasePlace {
+  routeItemId: number;
+  routeNotes?: string;
+  dayNumber: number;
+  orderInDay: number;
+  plannedTime?: Date;
+  isVisited: boolean;
 }

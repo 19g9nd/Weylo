@@ -1,34 +1,12 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { Place } from "../types/place";
+import { BasePlace } from "../types/place";
 import { placesService } from "../services/placesService";
-
-const STORAGE_KEY = "savedPlaces";
-
-// Localstorage fallback
-const localStorageService = {
-  load: async (): Promise<Place[]> => {
-    if (typeof window === "undefined") return [];
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      return stored ? (JSON.parse(stored) as Place[]) : [];
-    } catch (error) {
-      console.error("Error loading places from localStorage:", error);
-      return [];
-    }
-  },
-  save: async (places: Place[]): Promise<void> => {
-    if (typeof window === "undefined") return;
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(places));
-    } catch (error) {
-      console.error("Error saving places to localStorage:", error);
-    }
-  },
-};
+import { localStorageService } from "../services/localStorageService"; // ← используем единый сервис
+import { extractLocationInfo } from "../utils/placeUtils";
 
 export const useSavedPlaces = () => {
-  const [places, setPlaces] = useState<Place[]>([]);
+  const [places, setPlaces] = useState<BasePlace[]>([]);
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -42,33 +20,27 @@ export const useSavedPlaces = () => {
       setError(null);
 
       try {
-        const apiResult = await placesService.getPlaces();
+        const apiPlaces = await placesService.getCatalogue();
+        setPlaces(apiPlaces);
+        await localStorageService.saveCatalogue(apiPlaces);
 
-        if (apiResult.success && apiResult.data) {
-          setPlaces(apiResult.data);
-          if (apiResult.data.length > 0) {
-            setSelectedPlaceId(
-              apiResult.data[apiResult.data.length - 1].placeId
-            );
-          }
-        } else {
-          console.warn(
-            "API unavailable, loading from localStorage:",
-            apiResult.error
-          );
-          const localPlaces = await localStorageService.load();
+        if (apiPlaces.length > 0) {
+          setSelectedPlaceId(apiPlaces[apiPlaces.length - 1].placeId);
+        }
+      } catch (error) {
+        console.error("Error loading places from API:", error);
+        setError("Failed to load places from server");
+
+        // Fallback localStorage
+        try {
+          const localPlaces = await localStorageService.getAll();
           setPlaces(localPlaces);
           if (localPlaces.length > 0) {
             setSelectedPlaceId(localPlaces[localPlaces.length - 1].placeId);
           }
+        } catch (localError) {
+          console.error("Error loading places from localStorage:", localError);
         }
-      } catch (error) {
-        console.error("Error loading places:", error);
-        setError("Failed to load places");
-
-        // Localsorage Fallback
-        const localPlaces = await localStorageService.load();
-        setPlaces(localPlaces);
       } finally {
         setIsLoading(false);
         setLoaded(true);
@@ -78,85 +50,92 @@ export const useSavedPlaces = () => {
     loadPlaces();
   }, [loaded]);
 
-  useEffect(() => {
-    if (loaded) {
-      localStorageService.save(places);
+ const addPlace = useCallback(
+  async (place: BasePlace) => {
+    if (places.some((p) => p.placeId === place.placeId)) {
+      setSelectedPlaceId(place.placeId);
+      return;
     }
-  }, [places, loaded]);
 
-  const addPlace = useCallback(
-    async (place: Place) => {
-      if (places.some((p) => p.placeId === place.placeId)) {
-        setSelectedPlaceId(place.placeId);
-        return;
-      }
+    try {
+      const { cityName, countryName } = extractLocationInfo(place.formattedAddress);
 
-      setPlaces((prev) => {
-        const updated = [...prev, place];
-        setSelectedPlaceId(place.placeId);
-        return updated;
+      const savedPlace = await placesService.savePlace({
+        googlePlaceId: place.placeId,
+        name: place.displayName,
+        latitude: place.location.lat,
+        longitude: place.location.lng,
+        address: place.formattedAddress,
+        rating: place.rating || undefined,
+        imageUrl: place.photos?.[0]?.getURI(),
+        googleTypes: place.types || [place.googleType || "general"],
+        cityName,
+        countryName,
       });
 
-      try {
-        const result = await placesService.savePlace(place);
-        if (!result.success) {
-          console.error("Failed to save place to API:", result.error);
-          setError(
-            `Warning: Place saved locally but failed to sync: ${result.error}`
-          );
-
-          setTimeout(() => setError(null), 5000);
-        } else {
-          setError(null);
-        }
-      } catch (error) {
-        console.error("Error saving place:", error);
-        setError("Failed to save place to server");
-        setTimeout(() => setError(null), 5000);
+      if (!savedPlace) {
+        throw new Error("Failed to save place to backend");
       }
-    },
-    [places]
-  );
+
+      const placeWithBackendId = {
+        ...place,
+        backendId: savedPlace.backendId
+      };
+
+      setPlaces((prev) => {
+        const updated = [...prev, placeWithBackendId];
+        return updated;
+      });
+      setSelectedPlaceId(place.placeId);
+
+      const updatedPlaces = [...places, placeWithBackendId];
+      await localStorageService.saveCatalogue(updatedPlaces);
+      setError(null);
+    } catch (error) {
+      console.error("Error saving place:", error);
+      setError("Failed to save place to server");
+    }
+  },
+  [places]
+);
 
   const removePlace = useCallback(
-  async (place: Place) => {
-    setPlaces((prev) => prev.filter((p) => p.placeId !== place.placeId));
+    async (place: BasePlace) => {
+      setPlaces((prev) => prev.filter((p) => p.placeId !== place.placeId));
 
-    if (selectedPlaceId === place.placeId) {
-      setSelectedPlaceId(null);
-    }
+      if (selectedPlaceId === place.placeId) {
+        setSelectedPlaceId(null);
+      }
 
-    if (place.backendId) {
       try {
-        const result = await placesService.deletePlace(place.backendId);
-        if (!result.success) {
-          console.error("Failed to delete place from API:", result.error);
-          setError(
-            `⚠️ Warning: Place removed locally but failed to sync: ${result.error}`
-          );
-          setTimeout(() => setError(null), 5000);
-        } else {
-          setError(null);
+        if (place.backendId) {
+          await placesService.deletePlace(place.backendId);
         }
+        const updatedPlaces = places.filter((p) => p.placeId !== place.placeId);
+        await localStorageService.saveCatalogue(updatedPlaces);
+
+        setError(null);
       } catch (error) {
         console.error("Error deleting place:", error);
         setError("Failed to delete place from server");
+
+        setPlaces((prev) => [...prev, place]);
         setTimeout(() => setError(null), 5000);
       }
-    }
+    },
+    [places, selectedPlaceId]
+  );
 
-    console.log(
-      `Place ${place.placeId} removed locally (backendId: ${place.backendId})`
-    );
-  },
-  [selectedPlaceId]
-);
-
-  const clearAllPlaces = useCallback(() => {
+  const clearAllPlaces = useCallback(async () => {
     setPlaces([]);
     setSelectedPlaceId(null);
 
-    // TODO: add API call to clear all places
+    try {
+      await localStorageService.saveCatalogue([]);
+      // TODO: добавить вызов API для очистки всех мест
+    } catch (error) {
+      console.error("Error clearing places:", error);
+    }
   }, []);
 
   const selectedPlace =

@@ -1,8 +1,8 @@
-import { BackendPlace, Place } from "../types/place";
-import { ApiResponse } from "../types/shared";
-import httpClient from "./httpClient";
+import { httpClient } from "./httpClient";
+import { BasePlace } from "../types/place";
+import { transformCatalogPlace } from "../utils/transformCatalogPlace";
 
-interface SavePlaceRequest {
+export interface SavePlaceRequest {
   googlePlaceId: string;
   name: string;
   latitude: number;
@@ -15,129 +15,122 @@ interface SavePlaceRequest {
   googleTypes?: string[];
 }
 
-const extractLocationInfo = (
-  address: string = ""
-): { city: string; country: string } => {
-  const parts = address.split(", ");
-  const country = parts.length > 0 ? parts[parts.length - 1] : "Unknown";
-  const city = parts.length > 1 ? parts[parts.length - 2] : "Unknown";
-  return { city, country };
-};
+export interface UpdatePlaceRequest {
+  name?: string;
+  category?: string;
+  cachedAddress?: string;
+}
 
 export const placesService = {
-  async savePlace(place: Place): Promise<ApiResponse<{ id: number }>> {
-    const { city, country } = extractLocationInfo(place.formattedAddress);
+  basePath: "/api/destinations",
 
-    const googleTypes = place.types?.length
-      ? place.types
-      : place.primaryTypeDisplayName?.text
-      ? [place.primaryTypeDisplayName.text]
-      : [];
-
-    const request: SavePlaceRequest = {
-      googlePlaceId: place.placeId,
-      name: place.displayName || "Unknown Place",
-      latitude: place.location.lat,
-      longitude: place.location.lng,
-      address: place.formattedAddress,
-      rating: place.rating ?? undefined,
-      imageUrl: place.photos?.[0]?.getURI?.(),
-      cityName: city,
-      countryName: country,
-      googleTypes,
-    };
-
-    return httpClient.post<{ id: number }>("/api/destinations/save", request);
-  },
-
-  async deletePlace(
-    backendId: number
-  ): Promise<ApiResponse<{ success: boolean }>> {
-    return httpClient.delete<{ success: boolean }>(
-      `/api/destinations/${backendId}`
-    );
-  },
-
-  async getPlaces(): Promise<ApiResponse<Place[]>> {
-    const response = await httpClient.get<BackendPlace[]>(
-      "/api/destinations/catalogue"
+  async savePlace(placeData: SavePlaceRequest): Promise<BasePlace | null> {
+    const response = await httpClient.post<any>(
+      `${this.basePath}/save`,
+      placeData
     );
 
-    if (!response.success || !response.data) {
-      return {
-        success: false,
-        error: response.error || "Failed to fetch places",
-      };
+    if (response.success && response.data) {
+      return transformCatalogPlace(response.data);
     }
 
-    const places: Place[] = response.data.map((bp) => ({
-      placeId: bp.googlePlaceId,
-      backendId: bp.id,
-      displayName: bp.name,
-      formattedAddress: bp.cachedAddress || "",
-      location: {
-        lat: bp.latitude,
-        lng: bp.longitude,
-      },
-      rating: bp.cachedRating,
-      photos: bp.cachedImageUrl
-        ? [
-            {
-              getURI: () => bp.cachedImageUrl,
-            } as google.maps.places.Photo,
-          ]
-        : undefined,
-      types: bp.googleType
-        ? bp.googleType.split(",").map((t) => t.trim())
-        : [bp.category.toLowerCase().replace(" ", "_")],
-      primaryTypeDisplayName: {
-        text: bp.category,
-      },
-    }));
-
-    return { success: true, data: places };
+    console.error("Failed to save place:", response.error);
+    return null;
   },
 
-  async getMyPlaces(): Promise<ApiResponse<Place[]>> {
-    const response = await httpClient.get<BackendPlace[]>(
-      "/api/destinations/my"
-    );
+  async getCatalogue(): Promise<BasePlace[]> {
+    const response = await httpClient.get<any[]>(`${this.basePath}/catalogue`);
 
-    if (!response.success || !response.data) {
-      return {
-        success: false,
-        error: response.error || "Failed to fetch places",
-      };
+    if (response.success && response.data) {
+      return response.data.map(transformCatalogPlace);
     }
 
-    const places: Place[] = response.data.map((bp) => ({
-      placeId: bp.googlePlaceId,
-      backendId: bp.id,
-      displayName: bp.name,
-      formattedAddress: bp.cachedAddress || "",
-      location: {
-        lat: bp.latitude,
-        lng: bp.longitude,
-      },
-      rating: bp.cachedRating,
-      photos: bp.cachedImageUrl
-        ? [
-            {
-              getURI: () => bp.cachedImageUrl,
-            } as google.maps.places.Photo,
-          ]
-        : undefined,
-      types: bp.googleType
-        ? bp.googleType.split(",").map((t) => t.trim())
-        : [bp.category.toLowerCase().replace(" ", "_")],
-      primaryTypeDisplayName: {
-        text: bp.category,
-      },
-    }));
-
-    return { success: true, data: places };
+    console.error("Failed to load places catalogue:", response.error);
+    return [];
   },
-  async addPlaceToUser(backendId: number): Promise<ApiResponse<Place>> {
-    return httpClient.post<Place>(`/api/destinations/my/${backendId}`);
+
+  async getPopular(take: number = 20): Promise<BasePlace[]> {
+    const response = await httpClient.get<any[]>(
+      `${this.basePath}/popular?take=${take}`
+    );
+
+    if (response.success && response.data) {
+      return response.data.map(transformCatalogPlace);
+    }
+
+    console.error("Failed to load popular places:", response.error);
+    return [];
+  },
+
+  async getPlace(id: number): Promise<BasePlace | null> {
+    const response = await httpClient.get<any>(`${this.basePath}/${id}`);
+
+    if (response.success && response.data) {
+      return transformCatalogPlace(response.data);
+    }
+
+    console.error(`Failed to load place ${id}:`, response.error);
+    return null;
+  },
+
+  async deletePlace(id: number): Promise<boolean> {
+    const response = await httpClient.delete(`${this.basePath}/${id}`);
+
+    if (response.success) {
+      return true;
+    }
+
+    console.error(`Failed to delete place ${id}:`, response.error);
+    return false;
+  },
+
+  async getPlacesByCity(cityId: number): Promise<BasePlace[]> {
+    const response = await httpClient.get<any[]>(
+      `${this.basePath}/by-city/${cityId}`
+    );
+
+    if (response.success && response.data) {
+      return response.data.map(transformCatalogPlace);
+    }
+
+    console.error(`Failed to load places for city ${cityId}:`, response.error);
+    return [];
+  },
+
+  async searchPlaces(query: string): Promise<BasePlace[]> {
+    if (!query.trim()) {
+      return [];
+    }
+
+    const response = await httpClient.get<any[]>(
+      `${this.basePath}/search?query=${encodeURIComponent(query)}`
+    );
+
+    if (response.success && response.data) {
+      return response.data.map(transformCatalogPlace);
+    }
+
+    console.error(
+      `Failed to search places with query "${query}":`,
+      response.error
+    );
+    return [];
+  },
+
+  async updatePlace(
+    placeId: number,
+    updateData: UpdatePlaceRequest
+  ): Promise<BasePlace | null> {
+    const response = await httpClient.put<any>(
+      `${this.basePath}/${placeId}`,
+      updateData
+    );
+
+    if (response.success && response.data) {
+      return transformCatalogPlace(response.data);
+    }
+
+    console.error(`Failed to update place ${placeId}:`, response.error);
+    return null;
   },
 };

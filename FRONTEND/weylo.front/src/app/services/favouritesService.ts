@@ -1,13 +1,14 @@
-import { Place } from "../types/place";
+import { FavouritePlace } from "../types/place";
+import { transformFavouritePlace } from "../utils/transformFavouritePlace";
 import httpClient from "./httpClient";
 
 export const favouritesService = {
-  async getFavourites(): Promise<Place[]> {
-    const response = await httpClient.get<Place[]>("/api/destinations/favourites");
+  async getFavourites(): Promise<FavouritePlace[]> {
+    const response = await httpClient.get<any[]>("/api/destinations/favourites");
     if (!response.success) {
       throw new Error(response.error || "Failed to load favourites");
     }
-    return response.data || [];
+    return (response.data || []).map(transformFavouritePlace);
   },
 
   async addToFavourites(destinationId: number): Promise<void> {

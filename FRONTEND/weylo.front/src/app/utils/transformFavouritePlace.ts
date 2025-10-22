@@ -1,11 +1,12 @@
-import { Place } from "../types/place";
+import { FavouritePlace } from "../types/place";
 
-export const transformBackendToFrontendPlace = (
+export const transformFavouritePlace = (
   backendFavourite: any
-): Place => {
+): FavouritePlace => {
   const destination = backendFavourite.destination;
 
   return {
+    // BasePlace fields
     backendId: destination.id,
     placeId: destination.googlePlaceId,
     displayName: destination.name,
@@ -16,17 +17,19 @@ export const transformBackendToFrontendPlace = (
     formattedAddress: destination.cachedAddress,
     rating: destination.cachedRating ? Number(destination.cachedRating) : null,
     googleType: destination.googleType,
-    // From connected data
-    note: backendFavourite.personalNotes, // notes from UserFavourite
     category: destination.category?.name,
     categoryValue: destination.category?.name,
     photos: destination.cachedImageUrl
       ? [{ getURI: () => destination.cachedImageUrl }]
       : undefined,
-    // Additional info
     ...(destination.city && {
       city: destination.city.name,
       country: destination.city.country?.name,
     }),
+
+    // FavouritePlace specific fields
+    userFavouriteId: backendFavourite.id,
+    personalNotes: backendFavourite.personalNotes,
+    savedAt: new Date(backendFavourite.savedAt),
   };
 };

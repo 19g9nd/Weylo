@@ -6,19 +6,42 @@ class HttpClient {
 
   constructor(baseURL: string) {
     this.baseURL = baseURL;
-    // Recover token from localstorage
+    this.initializeToken();
+  }
+
+  private initializeToken() {
     if (typeof window !== "undefined") {
       this.token = localStorage.getItem("accessToken");
+      
+      const expiresAt = localStorage.getItem("tokenExpiresAt");
+      if (expiresAt && this.isTokenExpired(expiresAt)) {
+        console.log("🕒 Token expired on init, clearing...");
+        this.clearTokens();
+      }
     }
   }
 
-  setToken(token: string | null) {
+  private isTokenExpired(expiresAt: string): boolean {
+    try {
+      const expiryTime = new Date(expiresAt).getTime();
+      const currentTime = new Date().getTime();
+      return currentTime >= expiryTime;
+    } catch (error) {
+      console.error("Error checking token expiry:", error);
+      return true;
+    }
+  }
+
+  setToken(token: string | null, expiresAt?: string) {
     this.token = token;
     if (typeof window !== "undefined") {
       if (token) {
         localStorage.setItem("accessToken", token);
+        if (expiresAt) {
+          localStorage.setItem("tokenExpiresAt", expiresAt);
+        }
       } else {
-        localStorage.removeItem("accessToken");
+        this.clearTokens();
       }
     }
   }
@@ -27,6 +50,25 @@ class HttpClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
+    
+    if (this.token) {
+      const expiresAt = localStorage.getItem("tokenExpiresAt");
+      if (expiresAt && this.isTokenExpired(expiresAt)) {
+        console.log("🕒 Token expired before request, attempting refresh...");
+        const refreshed = await this.refreshToken();
+        if (!refreshed) {
+          this.clearTokens();
+          if (typeof window !== "undefined") {
+            this.showSessionExpiredModal();
+          }
+          return {
+            success: false,
+            error: "Token expired, please login again",
+          };
+        }
+      }
+    }
+
     const url = `${this.baseURL}${endpoint}`;
 
     const headers: Record<string, string> = {
@@ -41,7 +83,6 @@ class HttpClient {
 
     // Log request details for debugging
     console.log(`🚀 HTTP Request: ${options.method || "GET"} ${url}`);
-    console.log("📋 Request headers:", headers);
     if (options.body) {
       console.log("📦 Request body:", options.body);
     }
@@ -55,10 +96,6 @@ class HttpClient {
       // Log response details
       console.log(
         `📥 Response status: ${response.status} ${response.statusText}`
-      );
-      console.log(
-        "📋 Response headers:",
-        Object.fromEntries(response.headers.entries())
       );
 
       // If token expired attempt to refresh
@@ -83,9 +120,7 @@ class HttpClient {
           return this.handleResponse<T>(retryResponse, endpoint);
         } else {
           this.clearTokens();
-          if (typeof window !== "undefined") {
-            window.location.href = "/login";
-          }
+          this.showSessionExpiredModal();
           return {
             success: false,
             error: "Authentication failed",
@@ -135,7 +170,7 @@ class HttpClient {
       // If it's not JSON, log the issue
       if (!contentType?.includes("application/json")) {
         console.warn("⚠️ Response is not JSON:", contentType);
-        console.warn("📄 Response content:", rawText.substring(0, 500)); // Log first 500 chars
+        console.warn("📄 Response content:", rawText.substring(0, 500));
 
         // If it's HTML (error page), extract useful info
         if (contentType?.includes("text/html")) {
@@ -178,7 +213,7 @@ class HttpClient {
           json?.error ||
           json?.message ||
           `Request failed with status ${response.status}`;
-        console.error(`❌ Error response from ${endpoint}:`, errorMessage);
+        // console.error(`❌ Error response from ${endpoint}:`, errorMessage);
         return {
           success: false,
           error: errorMessage,
@@ -194,12 +229,19 @@ class HttpClient {
   }
 
   private async refreshToken(): Promise<boolean> {
-    const refreshToken =
-      typeof window !== "undefined"
-        ? localStorage.getItem("refreshToken")
-        : null;
+    const refreshToken = localStorage.getItem("refreshToken");
+    const refreshExpiresAt = localStorage.getItem("refreshTokenExpiresAt");
 
-    if (!refreshToken) return false;
+    if (!refreshToken) {
+      console.log("❌ No refresh token available");
+      return false;
+    }
+
+    if (refreshExpiresAt && this.isTokenExpired(refreshExpiresAt)) {
+      console.log("❌ Refresh token expired");
+      this.clearTokens();
+      return false;
+    }
 
     try {
       console.log("🔄 Attempting token refresh...");
@@ -214,11 +256,12 @@ class HttpClient {
       if (response.ok) {
         const data = await response.json();
         console.log("✅ Token refresh successful");
-        this.setToken(data.accessToken);
-        if (typeof window !== "undefined") {
+        
+        this.setToken(data.accessToken, data.expiresAt);
+        if (data.refreshToken) {
           localStorage.setItem("refreshToken", data.refreshToken);
-          if (data.expiresAt) {
-            localStorage.setItem("tokenExpiresAt", data.expiresAt);
+          if (data.refreshExpiresAt) {
+            localStorage.setItem("refreshTokenExpiresAt", data.refreshExpiresAt);
           }
         }
         return true;
@@ -228,9 +271,11 @@ class HttpClient {
           response.status,
           response.statusText
         );
+        this.clearTokens();
       }
     } catch (error) {
       console.error("❌ Token refresh error:", error);
+      this.clearTokens();
     }
 
     return false;
@@ -242,6 +287,37 @@ class HttpClient {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
       localStorage.removeItem("tokenExpiresAt");
+      localStorage.removeItem("refreshTokenExpiresAt");
+    }
+  }
+
+  private showSessionExpiredModal() {
+    if (typeof window !== "undefined") {
+      const modal = document.createElement('div');
+      modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+      `;
+      
+      modal.innerHTML = `
+        <div style="background: white; padding: 20px; border-radius: 8px; text-align: center;">
+          <h3>Session Expired</h3>
+          <p>Your session has expired. Please log in again.</p>
+          <button onclick="window.location.href='/login'" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            Go to Login
+          </button>
+        </div>
+      `;
+      
+      document.body.appendChild(modal);
     }
   }
 

@@ -1,5 +1,5 @@
 import { SupportedCountry } from "./country";
-import { Place } from "./place";
+import { BasePlace, FavouritePlace } from "./place";
 
 export enum SidebarMode {
   WELCOME = "welcome",
@@ -11,14 +11,14 @@ export enum SidebarMode {
 
 export interface UnifiedSidebarProps {
   mode: SidebarMode;
-  places: Place[];
+  places: BasePlace[];
   selectedPlaceId: string | null;
   onPlaceSelect: (placeId: string | null) => void;
-  onRemovePlace: (place: Place) => void;
+  onRemovePlace: (place: BasePlace) => void;
   selectedCountry: SupportedCountry | null;
-  favourites: Place[];
-  onAddToFavourites: (place: Place) => void; // ← ДОБАВИЛИ
-  onRemoveFromFavourites: (place: Place) => void; // ← ДОБАВИЛИ
+  favourites: FavouritePlace[];
+  onAddToFavourites: (place: FavouritePlace) => void;
+  onRemoveFromFavourites: (place: FavouritePlace) => void;
 
   activeRoute: Route | null;
   routes: Route[];
@@ -28,7 +28,7 @@ export interface UnifiedSidebarProps {
   onDeleteRoute: (routeId: string) => void;
   onDuplicateRoute: (routeId: string) => void;
 
-  onAddPlaceToRoute: (place: Place) => void;
+  onAddPlaceToRoute: (place: BasePlace | FavouritePlace) => void;
   onRemovePlaceFromRoute: (placeId: string) => void;
   onMovePlaceInRoute: (
     routeId: string,

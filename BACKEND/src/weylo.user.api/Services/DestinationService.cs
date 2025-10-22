@@ -82,13 +82,28 @@ namespace weylo.user.api.Services
 
             if (country == null)
             {
-                country = new Country
+                var countryCode = GetCountryCode(normalizedCountryName);
+
+                // Проверь нет ли уже страны с таким кодом
+                var existingCountryWithSameCode = await _context.Countries
+                    .FirstOrDefaultAsync(c => c.Code == countryCode);
+
+                if (existingCountryWithSameCode != null)
                 {
-                    Name = normalizedCountryName,
-                    Code = GetCountryCode(normalizedCountryName)
-                };
-                _context.Countries.Add(country);
-                await _context.SaveChangesAsync();
+                    // Если страна с таким кодом уже существует, используй её
+                    country = existingCountryWithSameCode;
+                    _logger.LogInformation($"Using existing country {country.Name} with code {country.Code} for {normalizedCountryName}");
+                }
+                else
+                {
+                    country = new Country
+                    {
+                        Name = normalizedCountryName,
+                        Code = countryCode
+                    };
+                    _context.Countries.Add(country);
+                    await _context.SaveChangesAsync();
+                }
             }
 
             var normalizedCityName = NormalizeCityName(request.CityName);
@@ -414,27 +429,28 @@ namespace weylo.user.api.Services
         private string GetCountryCode(string countryName)
         {
             var countryCodes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-            {
-                { "Azerbaijan", "AZ" },
-                { "Азербайджан", "AZ" },
-                { "Turkey", "TR" },
-                { "Türkiye", "TR" },
-                { "Georgia", "GE" },
-                { "Грузия", "GE" },
-                { "Russia", "RU" },
-                { "Россия", "RU" },
-                { "United States", "US" },
-                { "United Kingdom", "GB" },
-                { "France", "FR" },
-                { "Germany", "DE" },
-                { "Italy", "IT" },
-                { "Spain", "ES" },
-                { "Iran", "IR" },
-                { "Armenia", "AM" },
-                { "Армения", "AM" }
-            };
-
-            return countryCodes.TryGetValue(countryName, out var code) ? code : "XX";
+    {
+        { "Azerbaijan", "AZ" },
+        { "Азербайджан", "AZ" },
+        { "Turkey", "TR" },
+        { "Türkiye", "TR" },
+        { "Georgia", "GE" },
+        { "Грузия", "GE" },
+        { "Russia", "RU" },
+        { "Россия", "RU" },
+        { "United States", "US" },
+        { "USA", "US" },
+        { "United Kingdom", "GB" },
+        { "UK", "GB" },
+        { "France", "FR" },
+        { "Germany", "DE" },
+        { "Italy", "IT" },
+        { "Spain", "ES" },
+        { "Iran", "IR" },
+        { "Armenia", "AM" },
+        { "Армения", "AM" }
+    };
+            return countryCodes.TryGetValue(countryName, out var code) ? code : "UN";
         }
 
         private string NormalizeCityName(string cityName)

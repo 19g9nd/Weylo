@@ -107,7 +107,7 @@ namespace weylo.user.api.Controllers
         /// Update user-specific destination data (favorites, notes)
         /// </summary>
         [HttpPut("favourites/{userFavouriteId}")]
-        public async Task<ActionResult<UserFavouriteDto>> UpdateUserDestination(
+        public async Task<ActionResult<UserFavouriteDto>> UpdateUserFavourite(
      int userFavouriteId,
      [FromBody] UpdateUserFavouriteRequest request)
         {
@@ -122,8 +122,8 @@ namespace weylo.user.api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating user destination {UserFavouriteId}", userFavouriteId);
-                return StatusCode(500, new { error = "Failed to update user destination" });
+                _logger.LogError(ex, "Error updating user favourite destination {UserFavouriteId}", userFavouriteId);
+                return StatusCode(500, new { error = "Failed to update user favourite destination" });
             }
         }
 
