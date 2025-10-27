@@ -155,7 +155,7 @@ builder.Services.AddAuthentication(options =>
 // --- App services ---
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IDestinationService, DestinationService>();
-// builder.Services.AddScoped<IRouteService, RouteService>();
+builder.Services.AddScoped<IRouteService, RouteService>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IFilterService, FilterService>();
 builder.Services.AddScoped<IGooglePlacesCategoryMapper, GooglePlacesCategoryMapper>();

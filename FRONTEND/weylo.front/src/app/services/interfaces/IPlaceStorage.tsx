@@ -18,5 +18,5 @@ export interface IPlaceStorage {
   removeRoutePlace(placeId: string): Promise<void>;
   saveRoutePlaces(routePlaces: RoutePlace[]): Promise<void>;
 
-  clear(): Promise<void>;
+  clearCurrentUserData(): Promise<void>;
 }

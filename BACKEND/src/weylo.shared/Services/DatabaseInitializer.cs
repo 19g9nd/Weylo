@@ -1,8 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 using weylo.shared.Models;
 
 namespace weylo.shared.Services
@@ -25,10 +22,8 @@ namespace weylo.shared.Services
                 await _context.Database.CanConnectAsync();
                 _logger.LogInformation("✅ Connected to database");
 
-                // Инициализация категорий
                 await InitializeCategoriesAsync();
 
-                // Инициализация суперадмина
                 await InitializeSuperAdminAsync();
             }
             catch (Exception ex)

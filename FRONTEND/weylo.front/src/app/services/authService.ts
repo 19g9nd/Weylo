@@ -8,6 +8,7 @@ import {
 } from "../types/auth";
 import { ApiResponse, User } from "../types/shared";
 import httpClient from "./httpClient";
+import { localStorageService } from "./localStorageService";
 
 class AuthService {
   async register(userData: RegisterDto): Promise<ApiResponse<AuthResponseDto>> {
@@ -43,6 +44,8 @@ class AuthService {
       console.error("Logout request failed:", error);
     } finally {
       this.clearTokens();
+      await localStorageService.clearCurrentUserData();
+      localStorageService.setUser(null);
       httpClient.setToken(null);
     }
   }

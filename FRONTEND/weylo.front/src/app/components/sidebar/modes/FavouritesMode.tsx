@@ -1,13 +1,13 @@
-import { Place } from "@/src/app/types/place";
+import { FavouritePlace } from "@/src/app/types/place";
 import { SidebarMode } from "@/src/app/types/sidebar";
 import { getPrimaryCategory } from "@/src/app/utils/filterUtils";
 
 interface FavouritesModeProps {
-  favourites: Place[];
+  favourites: FavouritePlace[];
   selectedPlaceId: string | null;
   onPlaceSelect: (placeId: string | null) => void;
-  onRemoveFromFavourites: (place: Place) => void;
-  onAddToRoute: (place: Place) => void;
+  onRemoveFromFavourites: (place: FavouritePlace) => void;
+  onAddToRoute: (place: FavouritePlace) => void;
   onSwitchMode: (mode: SidebarMode) => void;
 }
 

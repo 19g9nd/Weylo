@@ -407,7 +407,7 @@
             ]
         },
         {
-            "DownstreamPathTemplate": "/api/Route/destinations/{routeDestinationId}",
+            "DownstreamPathTemplate": "/api/Route/destinations/{routeItemId}",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
@@ -415,7 +415,7 @@
                     "Port": 81
                 }
             ],
-            "UpstreamPathTemplate": "/api/route/destinations/{routeDestinationId}",
+            "UpstreamPathTemplate": "/api/route/destinations/{routeItemId}",
             "UpstreamHttpMethod": [
                 "PUT"
             ]
@@ -430,132 +430,6 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/route/{routeId}/destinations/reorder",
-            "UpstreamHttpMethod": [
-                "PUT"
-            ]
-        },
-        {
-            "DownstreamPathTemplate": "/api/Route/{routeId}/days",
-            "DownstreamScheme": "http",
-            "DownstreamHostAndPorts": [
-                {
-                    "Host": "user_api",
-                    "Port": 81
-                }
-            ],
-            "UpstreamPathTemplate": "/api/route/{routeId}/days",
-            "UpstreamHttpMethod": [
-                "GET"
-            ]
-        },
-        {
-            "DownstreamPathTemplate": "/api/Route/{routeId}/days/{dayNumber}",
-            "DownstreamScheme": "http",
-            "DownstreamHostAndPorts": [
-                {
-                    "Host": "user_api",
-                    "Port": 81
-                }
-            ],
-            "UpstreamPathTemplate": "/api/route/{routeId}/days/{dayNumber}",
-            "UpstreamHttpMethod": [
-                "GET"
-            ]
-        },
-        {
-            "DownstreamPathTemplate": "/api/Route/{routeId}/days",
-            "DownstreamScheme": "http",
-            "DownstreamHostAndPorts": [
-                {
-                    "Host": "user_api",
-                    "Port": 81
-                }
-            ],
-            "UpstreamPathTemplate": "/api/route/{routeId}/days",
-            "UpstreamHttpMethod": [
-                "POST"
-            ]
-        },
-        {
-            "DownstreamPathTemplate": "/api/Route/{routeId}/days/{dayNumber}",
-            "DownstreamScheme": "http",
-            "DownstreamHostAndPorts": [
-                {
-                    "Host": "user_api",
-                    "Port": 81
-                }
-            ],
-            "UpstreamPathTemplate": "/api/route/{routeId}/days/{dayNumber}",
-            "UpstreamHttpMethod": [
-                "PUT"
-            ]
-        },
-        {
-            "DownstreamPathTemplate": "/api/Route/{routeId}/days/{dayNumber}",
-            "DownstreamScheme": "http",
-            "DownstreamHostAndPorts": [
-                {
-                    "Host": "user_api",
-                    "Port": 81
-                }
-            ],
-            "UpstreamPathTemplate": "/api/route/{routeId}/days/{dayNumber}",
-            "UpstreamHttpMethod": [
-                "DELETE"
-            ]
-        },
-        {
-            "DownstreamPathTemplate": "/api/Route/{routeId}/days/{dayNumber}/destinations",
-            "DownstreamScheme": "http",
-            "DownstreamHostAndPorts": [
-                {
-                    "Host": "user_api",
-                    "Port": 81
-                }
-            ],
-            "UpstreamPathTemplate": "/api/route/{routeId}/days/{dayNumber}/destinations",
-            "UpstreamHttpMethod": [
-                "GET"
-            ]
-        },
-        {
-            "DownstreamPathTemplate": "/api/Route/{routeId}/days/{dayNumber}/destinations",
-            "DownstreamScheme": "http",
-            "DownstreamHostAndPorts": [
-                {
-                    "Host": "user_api",
-                    "Port": 81
-                }
-            ],
-            "UpstreamPathTemplate": "/api/route/{routeId}/days/{dayNumber}/destinations",
-            "UpstreamHttpMethod": [
-                "POST"
-            ]
-        },
-        {
-            "DownstreamPathTemplate": "/api/Route/{routeId}/days/{dayNumber}/destinations/{destinationId}",
-            "DownstreamScheme": "http",
-            "DownstreamHostAndPorts": [
-                {
-                    "Host": "user_api",
-                    "Port": 81
-                }
-            ],
-            "UpstreamPathTemplate": "/api/route/{routeId}/days/{dayNumber}/destinations/{destinationId}",
-            "UpstreamHttpMethod": [
-                "DELETE"
-            ]
-        },
-        {
-            "DownstreamPathTemplate": "/api/Route/{routeId}/days/{dayNumber}/destinations/reorder",
-            "DownstreamScheme": "http",
-            "DownstreamHostAndPorts": [
-                {
-                    "Host": "user_api",
-                    "Port": 81
-                }
-            ],
-            "UpstreamPathTemplate": "/api/route/{routeId}/days/{dayNumber}/destinations/reorder",
             "UpstreamHttpMethod": [
                 "PUT"
             ]

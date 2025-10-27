@@ -2,15 +2,20 @@ import { useState, useEffect } from "react";
 import { FavouritePlace } from "../types/place";
 import { favouritesService } from "../services/favouritesService";
 import { localStorageService } from "../services/localStorageService";
+import { useAuth } from "../context/AuthContext";
 
 export const useFavourites = () => {
+  const { user } = useAuth();
   const [favourites, setFavourites] = useState<FavouritePlace[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (user?.id) {
+      localStorageService.setUser(user.id);
+    }
     loadFavourites();
-  }, []);
+  }, [user?.id]);
 
   const loadFavourites = async () => {
     setIsLoading(true);
@@ -26,7 +31,7 @@ export const useFavourites = () => {
         err instanceof Error ? err.message : "Failed to load favourites"
       );
 
-      // Fallback localStorage
+      // Fallback к localStorage через сервис
       try {
         const localFavourites = await localStorageService.getFavourites();
         setFavourites(localFavourites);
@@ -46,9 +51,14 @@ export const useFavourites = () => {
       if (!place.backendId) {
         throw new Error("Place is not from catalogue - missing backendId");
       }
+
+      // Добавляем на бекенд
       await favouritesService.addToFavourites(place.backendId);
+
+      // Обновляем локальное состояние
       setFavourites((prev) => {
         const updated = [...prev, place];
+        // Сохраняем через сервис
         localStorageService.saveFavourites(updated);
         return updated;
       });
@@ -63,8 +73,11 @@ export const useFavourites = () => {
       if (!place.backendId) {
         throw new Error("Place is not from catalogue - missing backendId");
       }
+
+      // Удаляем с бекенда
       await favouritesService.removeFromFavourites(place.backendId);
 
+      // Обновляем локальное состояние
       setFavourites((prev) => {
         const updated = prev.filter((p) => p.placeId !== place.placeId);
         // Сохраняем через сервис

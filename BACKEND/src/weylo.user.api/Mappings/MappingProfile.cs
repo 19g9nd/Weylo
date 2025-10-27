@@ -44,7 +44,31 @@ namespace weylo.user.api.Mappings
             CreateMap<Country, CountryDto>();
             // Destination → DestinationDto
             CreateMap<Destination, DestinationDto>();
+            // В MappingProfile.cs добавить:
+            CreateMap<CreateRouteRequest, UserRoute>();
+            CreateMap<UpdateRouteRequest, UserRoute>()
+                .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
 
+            CreateMap<UserRoute, RouteDto>()
+                .ForMember(dest => dest.TotalDays,
+                    opt => opt.MapFrom(src => src.RouteItems.Any() ? src.RouteItems.Max(ri => ri.DayNumber) : 0))
+                .ForMember(dest => dest.TotalDestinations,
+                    opt => opt.MapFrom(src => src.RouteItems.Count))
+                .ForMember(dest => dest.VisitedDestinations,
+                    opt => opt.MapFrom(src => src.RouteItems.Count(ri => ri.IsVisited)));
+
+            CreateMap<UserRoute, RouteDetailsDto>()
+                .ForMember(dest => dest.TotalDays,
+                    opt => opt.MapFrom(src => src.RouteItems.Any() ? src.RouteItems.Max(ri => ri.DayNumber) : 0))
+                .ForMember(dest => dest.TotalDestinations,
+                    opt => opt.MapFrom(src => src.RouteItems.Count))
+                .ForMember(dest => dest.VisitedDestinations,
+                    opt => opt.MapFrom(src => src.RouteItems.Count(ri => ri.IsVisited)));
+
+            CreateMap<RouteItem, RouteItemDto>()
+                .ForMember(dest => dest.Destination,
+                    opt => opt.MapFrom(src => src.Destination));
+                    
             // UserFavourite → UserFavouriteDto  
             CreateMap<UserFavourite, UserFavouriteDto>()
                 .ForMember(dest => dest.Destination,

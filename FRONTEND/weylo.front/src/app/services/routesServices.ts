@@ -1,79 +1,42 @@
 import { ApiResponse } from "../types/shared";
-import { BackendRoute } from "../types/sidebar";
 import httpClient from "./httpClient";
+import { RouteDto, RouteDetailsDto, RouteItemDto } from "../types/route";
+import { CreateRouteRequest, UpdateRouteRequest, UpdateRouteItemRequest, AddPlaceToRouteRequest, ReorderPlacesRequest } from "../types/requests";
 
 export const routesService = {
-  async getMyRoutes(): Promise<ApiResponse<BackendRoute[]>> {
-    return httpClient.get("/api/user/routes");
+  async getMyRoutes(): Promise<ApiResponse<RouteDto[]>> {
+    return httpClient.get("/api/route");
   },
 
-  async createRoute(
-    routeData: Omit<BackendRoute, "id" | "createdAt" | "updatedAt">
-  ): Promise<ApiResponse<BackendRoute>> {
-    return httpClient.post("/api/user/routes", routeData);
+  async getRouteDetails(routeId: number): Promise<ApiResponse<RouteDetailsDto>> {
+    return httpClient.get(`/api/route/${routeId}`);
   },
 
-  async updateRoute(
-    routeId: number,
-    routeData: Partial<BackendRoute>
-  ): Promise<ApiResponse<BackendRoute>> {
-    return httpClient.put(`/api/user/routes/${routeId}`, routeData);
+  async createRoute(routeData: CreateRouteRequest): Promise<ApiResponse<RouteDto>> {
+    return httpClient.post("/api/route", routeData);
+  },
+
+  async updateRoute(routeId: number, routeData: UpdateRouteRequest): Promise<ApiResponse<RouteDto>> {
+    return httpClient.put(`/api/route/${routeId}`, routeData);
   },
 
   async deleteRoute(routeId: number): Promise<ApiResponse<void>> {
-    return httpClient.delete(`/api/user/routes/${routeId}`);
+    return httpClient.delete(`/api/route/${routeId}`);
   },
 
-  async getRouteDetails(routeId: number): Promise<ApiResponse<BackendRoute>> {
-    return httpClient.get(`/api/user/route/${routeId}`);
+  async addPlaceToRoute(routeId: number, request: AddPlaceToRouteRequest): Promise<ApiResponse<RouteItemDto>> {
+    return httpClient.post(`/api/route/${routeId}/places`, request);
   },
 
-  async addDestinationToRoute(
-    routeId: number,
-    request: any
-  ): Promise<ApiResponse<any>> {
-    return httpClient.post(`/api/user/route/${routeId}/destinations`, request);
-  },
-  async addDayToRoute(
-    routeId: number,
-    request: any
-  ): Promise<ApiResponse<any>> {
-    return httpClient.post(`/api/user/route/${routeId}/days`, request);
+  async updateRouteItem(routeItemId: number, request: UpdateRouteItemRequest): Promise<ApiResponse<RouteItemDto>> {
+    return httpClient.put(`/api/route/items/${routeItemId}`, request);
   },
 
-  async updateRouteDestination(
-    routeDestinationId: number,
-    request: any
-  ): Promise<ApiResponse<any>> {
-    return httpClient.put(
-      `/api/user/route/destinations/${routeDestinationId}`,
-      request
-    );
+  async removePlaceFromRoute(routeId: number, placeId: number): Promise<ApiResponse<void>> {
+    return httpClient.delete(`/api/route/${routeId}/places/${placeId}`);
   },
 
-  async moveDestination(
-    routeDestinationId: number,
-    request: any
-  ): Promise<ApiResponse<any>> {
-    return httpClient.put(
-      `/api/user/route/destinations/${routeDestinationId}/move`,
-      request
-    );
-  },
-
-  async removeDestinationFromRoute(
-    routeId: number,
-    destinationId: number
-  ): Promise<ApiResponse<any>> {
-    return httpClient.delete(
-      `/api/Route/${routeId}/destinations/${destinationId}`
-    );
-  },
-
-  async removeDayFromRoute(
-    routeId: number,
-    dayNumber: number
-  ): Promise<ApiResponse<any>> {
-    return httpClient.delete(`/api/Route/${routeId}/days/${dayNumber}`);
-  },
+  async reorderPlaces(routeId: number, request: ReorderPlacesRequest): Promise<ApiResponse<void>> {
+    return httpClient.put(`/api/route/${routeId}/places/reorder`, request);
+  }
 };
