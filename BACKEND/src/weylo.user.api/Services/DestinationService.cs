@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using weylo.shared.Models;
 using weylo.user.api.Data;
 using weylo.user.api.DTOS;
+using weylo.user.api.Mappings.Interfaces;
 using weylo.user.api.Requests;
 using weylo.user.api.Services.Interfaces;
 
@@ -13,18 +14,24 @@ namespace weylo.user.api.Services
         private readonly UserDbContext _context;
         private readonly ICurrentUserService _currentUserService;
         private readonly IMapper _mapper;
+        private readonly IGooglePlacesCategoryMapper _googlePlacesCategoryMapper;
         private readonly ILogger<DestinationService> _logger;
 
-        public DestinationService(UserDbContext context, ICurrentUserService currentUserService, IMapper mapper, ILogger<DestinationService> logger)
+        public DestinationService(UserDbContext context, ICurrentUserService currentUserService, IMapper mapper, IGooglePlacesCategoryMapper googlePlacesCategoryMapper, ILogger<DestinationService> logger)
         {
             _context = context;
             _currentUserService = currentUserService;
             _mapper = mapper;
             _logger = logger;
+            _googlePlacesCategoryMapper = googlePlacesCategoryMapper;
         }
 
         public async Task<DestinationDto> SavePlaceAsync(SavePlaceRequest request)
         {
+            // Добавьте отладочное логирование в начале метода
+            _logger.LogInformation("=== SAVE PLACE DEBUG ===");
+            _logger.LogInformation("Google Types: {Types}", request.GoogleTypes != null ? string.Join(", ", request.GoogleTypes) : "null");
+
             var existing = await _context.Destinations
                 .Include(d => d.Category)
                 .Include(d => d.City)
@@ -37,7 +44,8 @@ namespace weylo.user.api.Services
             {
                 bool needsUpdate = false;
 
-                int newCategoryId = await DetermineCategoryFromGoogleTypeAsync(request.GoogleTypes);
+                int? newCategoryIdNullable = await _googlePlacesCategoryMapper.DetermineCategoryAsync(request.GoogleTypes);
+                int newCategoryId = newCategoryIdNullable ?? await GetDefaultCategoryIdAsync();
 
                 if (existing.CategoryId != newCategoryId)
                 {
@@ -84,13 +92,11 @@ namespace weylo.user.api.Services
             {
                 var countryCode = GetCountryCode(normalizedCountryName);
 
-                // Проверь нет ли уже страны с таким кодом
                 var existingCountryWithSameCode = await _context.Countries
                     .FirstOrDefaultAsync(c => c.Code == countryCode);
 
                 if (existingCountryWithSameCode != null)
                 {
-                    // Если страна с таким кодом уже существует, используй её
                     country = existingCountryWithSameCode;
                     _logger.LogInformation($"Using existing country {country.Name} with code {country.Code} for {normalizedCountryName}");
                 }
@@ -139,11 +145,11 @@ namespace weylo.user.api.Services
                 }
             }
 
-            int categoryId = await DetermineCategoryFromGoogleTypeAsync(request.GoogleTypes);
-            Console.WriteLine($"GoogleTypes received: {(request.GoogleTypes != null ? string.Join(", ", request.GoogleTypes) : "null")}");
+            int? detectedCategoryId = await _googlePlacesCategoryMapper.DetermineCategoryAsync(request.GoogleTypes);
+            int categoryId = detectedCategoryId ?? await GetDefaultCategoryIdAsync();
 
+            _logger.LogInformation("Final category ID: {CategoryId}", categoryId);
 
-            // 5. Создаем новое место
             var destination = new Destination
             {
                 Name = request.Name,
@@ -191,7 +197,7 @@ namespace weylo.user.api.Services
         {
             var destination = await _context.Destinations
                 .Include(d => d.UserFavourites)
-                .Include(d => d.RouteItems)  // ← ДОБАВИТЬ проверку маршрутов
+                .Include(d => d.RouteItems)
                 .FirstOrDefaultAsync(d => d.Id == id);
 
             if (destination == null) return false;
@@ -244,14 +250,12 @@ namespace weylo.user.api.Services
             if (destination == null)
                 throw new BadHttpRequestException($"Destination with id {destinationId} not found");
 
-            // ЗАМЕНА: UserDestinations → UserFavourites
             var existingUserFavourite = await _context.UserFavourites
                 .FirstOrDefaultAsync(uf => uf.UserId == userId && uf.DestinationId == destinationId);
 
             if (existingUserFavourite != null)
                 throw new BadHttpRequestException($"Destination already in favourites");
 
-            // ЗАМЕНА: UserDestination → UserFavourite
             var userFavourite = new UserFavourite
             {
                 UserId = userId,
@@ -283,8 +287,6 @@ namespace weylo.user.api.Services
             if (userFavourite == null)
                 return false;
 
-            // УБРАТЬ проверку на использование в маршрутах
-            // Фавориты можно удалять всегда, даже если они в маршрутах
             _context.UserFavourites.Remove(userFavourite);
             await _context.SaveChangesAsync();
             return true;
@@ -325,7 +327,7 @@ namespace weylo.user.api.Services
                         .ThenInclude(c => c.Country)
                 .Include(uf => uf.Destination)
                     .ThenInclude(d => d.Category)
-                // УБРАТЬ: .Include(uf => uf.RouteItems) - фаворитам не нужно знать о маршрутах
+                // .Include(uf => uf.RouteItems) - фаворитам не нужно знать о маршрутах
                 .OrderByDescending(uf => uf.SavedAt)
                 .ToListAsync();
 
@@ -381,40 +383,6 @@ namespace weylo.user.api.Services
         }
 
         #region Category Auto-Detection
-        private async Task<int> DetermineCategoryFromGoogleTypeAsync(string[]? googleTypes)
-        {
-            if (googleTypes == null || !googleTypes.Any())
-                return await GetDefaultCategoryIdAsync();
-
-            var types = googleTypes.Select(t => t.Trim().ToLower()).ToArray();
-
-            var categories = await _context.Categories
-                .Where(c => !string.IsNullOrEmpty(c.GoogleTypes))
-                .OrderByDescending(c => c.Priority)
-                .ToListAsync();
-
-            Category? bestMatch = null;
-            int maxMatches = 0;
-
-            foreach (var category in categories)
-            {
-                var categoryTypes = category.GoogleTypes
-                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                    .Select(t => t.Trim().ToLower())
-                    .ToHashSet();
-
-                int matchCount = types.Count(t => categoryTypes.Contains(t));
-
-                if (matchCount > maxMatches)
-                {
-                    maxMatches = matchCount;
-                    bestMatch = category;
-                }
-            }
-
-            return bestMatch?.Id ?? await GetDefaultCategoryIdAsync();
-        }
-
         private async Task<int> GetDefaultCategoryIdAsync()
         {
             var defaultCategory = await _context.Categories
@@ -485,12 +453,11 @@ namespace weylo.user.api.Services
         {
             var destination = await _context.Destinations
                 .Include(d => d.Category)
-                .Include(d => d.FilterValues) // ✅ Загружаем существующие фильтры
+                .Include(d => d.FilterValues)
                 .FirstOrDefaultAsync(d => d.Id == destinationId);
 
             if (destination == null) return;
 
-            // ✅ Если это обновление - удаляем старые фильтры
             if (updateExisting && destination.FilterValues.Any())
             {
                 _logger.LogInformation(

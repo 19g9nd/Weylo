@@ -21,11 +21,12 @@ namespace weylo.admin.api.Controllers
 
         // GET: api/countries
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Country>>> GetCountries()
+        public async Task<IActionResult> GetCountries()
         {
-            return await _context.Countries
-                .OrderBy(c => c.Name)
-                .ToListAsync();
+            var countries = await _context.Countries
+                   .OrderBy(c => c.Name)
+                   .ToListAsync();
+            return Ok(countries);
         }
 
         // GET: api/countries/supported
@@ -51,6 +52,33 @@ namespace weylo.admin.api.Controllers
                 .ToListAsync();
 
             return Ok(countries);
+        }
+
+        // GET: api/countries/{countryId}/cities
+        [HttpGet("{countryId}/cities")]
+        public async Task<IActionResult> GetCitiesByCountry(int countryId)
+        {
+            var cities = await _context.Cities
+                .Where(c => c.CountryId == countryId)
+                .Select(c => new
+                {
+                    c.Id,
+                    c.Name,
+                    c.Latitude,
+                    c.Longitude,
+                    DestinationsCount = c.Destinations.Count,
+                    // Можно добавить иконку самого популярного категории
+                    TopCategory = c.Destinations
+                        .GroupBy(d => d.Category.Name)
+                        .OrderByDescending(g => g.Count())
+                        .Select(g => g.Key)
+                        .FirstOrDefault()
+                })
+                .OrderByDescending(c => c.DestinationsCount) // First by number of destinations
+                .ThenBy(c => c.Name)
+                .ToListAsync();
+
+            return Ok(cities);
         }
 
         // GET: api/countries/codes

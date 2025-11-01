@@ -72,6 +72,147 @@ namespace weylo.admin.api.Controllers
             };
         }
 
+        [HttpGet("{cityId}/map-data")]
+        public async Task<IActionResult> GetCityMapData(int cityId)
+        {
+            try
+            {
+                var city = await _context.Cities
+                    .Include(c => c.Country)
+                    .Where(c => c.Id == cityId)
+                    .Select(c => new
+                    {
+                        c.Id,
+                        c.Name,
+                        c.Latitude,
+                        c.Longitude,
+                        CountryName = c.Country.Name,
+                        CountryCode = c.Country.Code
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (city == null)
+                    return NotFound();
+
+                var destinations = await _context.Destinations
+                    .Include(d => d.Category)
+                    .Where(d => d.CityId == cityId)
+                    .Select(d => new
+                    {
+                        d.Id,
+                        d.Name,
+                        d.Latitude,
+                        d.Longitude,
+                        d.CachedAddress,
+                        d.CachedRating,
+                        d.CachedImageUrl,
+                        CategoryId = d.Category.Id,
+                        CategoryName = d.Category.Name,
+                        CategoryIcon = d.Category.Icon,
+                        d.GoogleType
+                    })
+                    .ToListAsync();
+
+                var availableCategories = await _context.Destinations
+                    .Where(d => d.CityId == cityId)
+                    .GroupBy(d => new { d.Category.Id, d.Category.Name })
+                    .Select(g => new
+                    {
+                        g.Key.Id,
+                        g.Key.Name,
+                        Count = g.Count()
+                    })
+                    .OrderByDescending(x => x.Count)
+                    .ToListAsync();
+
+                var result = new
+                {
+                    City = city,
+                    Destinations = destinations,
+                    AvailableCategories = availableCategories
+                };
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in GetCityMapData: {ex.Message}");
+                return StatusCode(500, new { Message = "Internal server error", Error = ex.Message });
+            }
+        }
+
+        // GET: api/cities/{cityId}/destinations?categoryIds=1,2,3&search=keyword
+        [HttpGet("{cityId}/destinations")]
+        public async Task<IActionResult> GetFilteredDestinations(
+                    int cityId,
+                    [FromQuery] string? categoryIds = null,
+                    [FromQuery] string? search = null)
+        {
+            try
+            {
+                if (!await _context.Cities.AnyAsync(c => c.Id == cityId))
+                    return NotFound(new { Message = "City not found" });
+
+                var query = _context.Destinations
+                    .Include(d => d.Category)
+                    .Where(d => d.CityId == cityId)
+                    .AsNoTracking();
+
+                // Фильтрация по категориям с валидацией
+                if (!string.IsNullOrEmpty(categoryIds))
+                {
+                    if (!categoryIds.Split(',').All(id => int.TryParse(id, out _)))
+                        return BadRequest(new { Message = "Invalid category IDs format" });
+
+                    var categories = categoryIds.Split(',').Select(int.Parse).ToList();
+
+                    // Проверка существования категорий
+                    var existingCategories = await _context.Categories
+                        .Where(c => categories.Contains(c.Id))
+                        .Select(c => c.Id)
+                        .ToListAsync();
+
+                    var invalidCategories = categories.Except(existingCategories).ToList();
+                    if (invalidCategories.Any())
+                        return BadRequest(new { Message = $"Invalid category IDs: {string.Join(",", invalidCategories)}" });
+
+                    query = query.Where(d => categories.Contains(d.CategoryId));
+                }
+
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    var normalizedSearch = search.Trim();
+
+                    query = query.Where(d =>
+                        EF.Functions.ILike(d.Name, $"%{normalizedSearch}%") ||
+                        (d.CachedAddress != null && EF.Functions.ILike(d.CachedAddress, $"%{normalizedSearch}%"))
+                    );
+                }
+
+                var destinations = await query
+                    .OrderBy(d => d.Name)
+                    .Select(d => new
+                    {
+                        d.Id,
+                        d.Name,
+                        d.Latitude,
+                        d.Longitude,
+                        d.CachedAddress,
+                        d.CachedRating,
+                        d.CachedImageUrl,
+                        CategoryName = d.Category.Name,
+                        d.GoogleType
+                    })
+                    .ToListAsync();
+
+                return Ok(destinations);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { Message = "Error filtering destinations for city", CityId = cityId });
+            }
+        }
+
         // POST: api/admin/cities
         [HttpPost]
         public async Task<ActionResult<City>> PostCity(CreateCityRequest request)
@@ -142,7 +283,7 @@ namespace weylo.admin.api.Controllers
                 return BadRequest("Country not found");
             }
 
-            var existingCity = await FindExistingCityAsync(request.Name, request.Latitude, request.Longitude, request.CountryId, id);
+            // var existingCity = await FindExistingCityAsync(request.Name, request.Latitude, request.Longitude, request.CountryId, id);
             // if (existingCity != null)
             // {
             //     return Conflict(new
