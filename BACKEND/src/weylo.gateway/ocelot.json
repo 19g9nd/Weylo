@@ -421,6 +421,20 @@
             ]
         },
         {
+            "DownstreamPathTemplate": "/api/Weather",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/weather",
+            "UpstreamHttpMethod": [
+                "GET"
+            ]
+        },
+        {
             "DownstreamPathTemplate": "/api/Route/{routeId}/destinations/reorder",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
@@ -486,6 +500,48 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/admin/countries",
+            "UpstreamHttpMethod": [
+                "GET"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Countries/{countryId}/cities",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "admin_api",
+                    "Port": 82
+                }
+            ],
+            "UpstreamPathTemplate": "/api/admin/countries/{countryId}/cities",
+            "UpstreamHttpMethod": [
+                "GET"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Cities/{cityId}/map-data",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "admin_api",
+                    "Port": 82
+                }
+            ],
+            "UpstreamPathTemplate": "/api/admin/cities/{cityId}/map-data",
+            "UpstreamHttpMethod": [
+                "GET"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Cities/{cityId}/destinations{everything}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "admin_api",
+                    "Port": 82
+                }
+            ],
+            "UpstreamPathTemplate": "/api/admin/cities/{cityId}/destinations{everything}",
             "UpstreamHttpMethod": [
                 "GET"
             ]

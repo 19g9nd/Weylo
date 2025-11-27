@@ -9,50 +9,56 @@ services:
     container_name: identity_api
     environment:
       ASPNETCORE_URLS: http://+:80
-    depends_on:
-      - postgres
     env_file:
       - .env
     ports:
-      - 5000:80
+      - "5000:80"
     networks:
       - myappnetwork
     restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   user:
     build:
       context: .
-      dockerfile: user.Dockerfile  
-    container_name: user_api 
+      dockerfile: user.Dockerfile
+    container_name: user_api
     ports:
       - "5001:81"
     environment:
-      - ASPNETCORE_URLS=http://+:81  
-    depends_on:
-      - postgres 
-      - identity  
-    networks:
-      - myappnetwork 
+      - ASPNETCORE_URLS=http://+:81
     env_file:
-      - .env  
+      - .env
+    networks:
+      - myappnetwork
     restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      identity:
+        condition: service_started
+
   admin:
     build:
       context: .
-      dockerfile: admin.Dockerfile  
-    container_name: admin_api 
+      dockerfile: admin.Dockerfile
+    container_name: admin_api
     ports:
       - "5002:82"
     environment:
-      - ASPNETCORE_URLS=http://+:82 
-    depends_on:
-      - postgres 
-      - identity  
-    networks:
-      - myappnetwork 
+      - ASPNETCORE_URLS=http://+:82
     env_file:
-      - .env  
+      - .env
+    networks:
+      - myappnetwork
     restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      identity:
+        condition: service_started
 
   gateway:
     build:
@@ -63,13 +69,16 @@ services:
       - "4000:83"
     environment:
       - ASPNETCORE_URLS=http://+:83
-    depends_on:
-      - identity
-      - user
     networks:
       - myappnetwork
     restart: always
-
+    depends_on:
+      postgres:
+        condition: service_healthy
+      identity:
+        condition: service_started
+      user:
+        condition: service_started
 
   postgres:
     image: postgres:latest
@@ -81,14 +90,19 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
-    - mypostgresdb_data:/var/lib/postgresql/data
+      - mypostgresdb_data:/var/lib/postgresql/data
     expose:
-      - 5432
+      - "5432"
     ports:
       - "5433:5432"
     networks:
       - myappnetwork
     restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
 networks:
   myappnetwork:

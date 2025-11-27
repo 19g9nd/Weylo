@@ -136,15 +136,3 @@ namespace weylo.admin.api.Controllers
 
     }
 }
-
-
-// POST   /api/admin/categories
-// PUT    /api/admin/categories/{id}
-// DELETE /api/admin/categories/{id}
-
-// POST   /api/admin/destinations
-// PUT    /api/admin/destinations/{id}
-// DELETE /api/admin/destinations/{id}
-
-// GET    /api/admin/routes
-// POST   /api/admin/routes/{id}/add-city
