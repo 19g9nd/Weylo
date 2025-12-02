@@ -57,6 +57,27 @@ namespace weylo.identity.Services
             await SendEmailAsync(email, subject, body);
         }
 
+        // Новый метод для отправки OTP
+        public async Task SendOtpEmailAsync(string email, string otpCode, string purpose)
+        {
+            var subject = purpose == "EmailVerification" 
+                ? "Your Email Verification Code" 
+                : "Your Password Reset Code";
+
+            var body = $@"
+                <html>
+                <body>
+                    <h2>{subject}</h2>
+                    <p>Your verification code is:</p>
+                    <h1 style='font-size: 32px; letter-spacing: 8px; color: #6366f1; font-weight: bold; text-align: center; padding: 20px; background-color: #f3f4f6; border-radius: 8px;'>{otpCode}</h1>
+                    <p>This code will expire in 10 minutes.</p>
+                    <p>If you didn't request this code, please ignore this email.</p>
+                </body>
+                </html>";
+
+            await SendEmailAsync(email, subject, body);
+        }
+
         private async Task SendEmailAsync(string to, string subject, string body)
         {
             try
@@ -77,14 +98,12 @@ namespace weylo.identity.Services
 
                 using var client = new SmtpClient();
 
-                // Connect to SMTP server
                 await client.ConnectAsync(
                     _configuration["Email:SmtpHost"],
                     int.Parse(_configuration["Email:SmtpPort"]),
                     SecureSocketOptions.StartTls
                 );
 
-                // Auth
                 await client.AuthenticateAsync(
                     _configuration["Email:Username"],
                     _configuration["Email:Password"]

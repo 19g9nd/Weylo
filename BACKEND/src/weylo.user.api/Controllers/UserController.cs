@@ -53,7 +53,7 @@ namespace weylo.user.api.Controllers
             }
         }
 
-        [HttpPut("username")]
+        [HttpPatch("change-username")]
         public async Task<IActionResult> ChangeUsername([FromBody] ChangeUsernameRequest request)
         {
             try

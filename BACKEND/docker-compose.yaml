@@ -103,6 +103,16 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+  redis:
+    image: redis
+    container_name: redisdb
+    expose:
+      - 6379
+    ports:
+      - 6379:6379
+    networks:
+      - myappnetwork
+    restart: always
 
 networks:
   myappnetwork:

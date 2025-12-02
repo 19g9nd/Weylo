@@ -29,7 +29,6 @@ namespace weylo.shared.Models
 
         public decimal? CachedRating { get; set; }
 
-        [MaxLength(500)]
         public string? CachedImageUrl { get; set; }
 
         [MaxLength(500)]

@@ -257,7 +257,7 @@ namespace weylo.identity.Controllers
 
             return Ok(new { message = "Password has been reset successfully" });
         }
-        
+
         /// <summary>
         /// Change user password
         /// </summary>
@@ -364,5 +364,110 @@ namespace weylo.identity.Controllers
 
             return Ok(new { message = "Verification email sent again" });
         }
+        /// <summary>
+        /// Request OTP code for mobile (email verification or password reset)
+        /// </summary>
+        /// <param name="requestOtpDto">OTP request data</param>
+        /// <returns>OTP request result</returns>
+        /// <remarks>
+        /// Example request:
+        /// 
+        ///     POST /api/auth/request-otp
+        ///     {
+        ///         "email": "user@example.com",
+        ///         "purpose": 0  // 0 = EmailVerification, 1 = PasswordReset
+        ///     }
+        /// 
+        /// </remarks>
+        /// <response code="200">OTP code sent to email</response>
+        /// <response code="400">Invalid request data</response>
+        [HttpPost("request-otp")]
+        [ProducesResponseType(typeof(object), 200)]
+        [ProducesResponseType(typeof(object), 400)]
+        public async Task<IActionResult> RequestOtp([FromBody] RequestOtpDto requestOtpDto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var (success, error) = await _authService.RequestOtpAsync(requestOtpDto);
+
+            if (!success)
+                return BadRequest(new { error });
+
+            return Ok(new { message = "OTP code sent to your email" });
+        }
+
+        /// <summary>
+        /// Verify OTP code
+        /// </summary>
+        /// <param name="verifyOtpDto">OTP verification data</param>
+        /// <returns>Verification result</returns>
+        /// <remarks>
+        /// Example request:
+        /// 
+        ///     POST /api/auth/verify-otp
+        ///     {
+        ///         "email": "user@example.com",
+        ///         "otpCode": "123456",
+        ///         "purpose": 0  // 0 = EmailVerification, 1 = PasswordReset
+        ///     }
+        /// 
+        /// </remarks>
+        /// <response code="200">OTP verified successfully</response>
+        /// <response code="400">Invalid or expired OTP code</response>
+        [HttpPost("verify-otp")]
+        [ProducesResponseType(typeof(object), 200)]
+        [ProducesResponseType(typeof(object), 400)]
+        public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpDto verifyOtpDto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var (success, error) = await _authService.VerifyOtpAsync(verifyOtpDto);
+
+            if (!success)
+                return BadRequest(new { error });
+
+            return Ok(new
+            {
+                message = "OTP verified successfully",
+                verified = true
+            });
+        }
+
+        /// <summary>
+        /// Reset password using OTP code (mobile)
+        /// </summary>
+        /// <param name="resetPasswordDto">Password reset data with OTP</param>
+        /// <returns>Password reset result</returns>
+        /// <remarks>
+        /// Example request:
+        /// 
+        ///     POST /api/auth/reset-password-otp
+        ///     {
+        ///         "email": "user@example.com",
+        ///         "otpCode": "123456",
+        ///         "newPassword": "NewSecurePassword123!"
+        ///     }
+        /// 
+        /// </remarks>
+        /// <response code="200">Password reset successfully</response>
+        /// <response code="400">Invalid OTP or request data</response>
+        [HttpPost("reset-password-otp")]
+        [ProducesResponseType(typeof(object), 200)]
+        [ProducesResponseType(typeof(object), 400)]
+        public async Task<IActionResult> ResetPasswordWithOtp([FromBody] ResetPasswordWithOtpDto resetPasswordDto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var (success, error) = await _authService.ResetPasswordWithOtpAsync(resetPasswordDto);
+
+            if (!success)
+                return BadRequest(new { error });
+
+            return Ok(new { message = "Password reset successfully" });
+        }
     }
+
 }

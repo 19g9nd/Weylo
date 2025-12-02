@@ -18,11 +18,25 @@ namespace weylo.shared.Data
         public DbSet<FilterAttribute> FilterAttributes { get; set; }
         public DbSet<FilterValue> FilterValues { get; set; }
         public DbSet<CategoryFilter> CategoryFilters { get; set; }
+        public DbSet<OtpCode> OtpCodes { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            
+            // --- OtpCode ---
+            modelBuilder.Entity<OtpCode>(entity =>
+            {
+                entity.HasIndex(e => new { e.Email, e.Code, e.Purpose });
+                entity.HasIndex(e => e.Email);
+                entity.HasIndex(e => e.ExpiresAt);
+                entity.HasIndex(e => e.IsUsed);
 
+                entity.Property(e => e.Email).HasMaxLength(255).IsRequired();
+                entity.Property(e => e.Code).HasMaxLength(6).IsRequired();
+                entity.Property(e => e.Purpose).HasMaxLength(50).IsRequired();
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            });
             // --- User ---
             modelBuilder.Entity<User>(entity =>
             {

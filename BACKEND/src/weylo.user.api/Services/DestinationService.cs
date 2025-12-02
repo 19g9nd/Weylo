@@ -28,10 +28,6 @@ namespace weylo.user.api.Services
 
         public async Task<DestinationDto> SavePlaceAsync(SavePlaceRequest request)
         {
-            // Добавьте отладочное логирование в начале метода
-            _logger.LogInformation("=== SAVE PLACE DEBUG ===");
-            _logger.LogInformation("Google Types: {Types}", request.GoogleTypes != null ? string.Join(", ", request.GoogleTypes) : "null");
-
             var existing = await _context.Destinations
                 .Include(d => d.Category)
                 .Include(d => d.City)
@@ -149,7 +145,8 @@ namespace weylo.user.api.Services
             int categoryId = detectedCategoryId ?? await GetDefaultCategoryIdAsync();
 
             _logger.LogInformation("Final category ID: {CategoryId}", categoryId);
-
+            
+            var destinationImg = request.ImageUrl;
             var destination = new Destination
             {
                 Name = request.Name,
@@ -181,7 +178,7 @@ namespace weylo.user.api.Services
                 .Reference(c => c.Country)
                 .LoadAsync();
 
-            // Загружаем фильтры для ответа
+            // Load filter values
             await _context.Entry(destination)
                 .Collection(d => d.FilterValues)
                 .Query()

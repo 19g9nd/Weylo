@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Distributed;
+using System.Text.Json;
 
 namespace weylo.user.api.Controllers
 {
@@ -8,12 +10,17 @@ namespace weylo.user.api.Controllers
     {
         private readonly IConfiguration _configuration;
         private readonly ILogger<WeatherController> _logger;
+        private readonly IDistributedCache _cache;
         private static readonly HttpClient _httpClient = new HttpClient();
 
-        public WeatherController(IConfiguration configuration, ILogger<WeatherController> logger)
+        public WeatherController(
+            IConfiguration configuration, 
+            ILogger<WeatherController> logger,
+            IDistributedCache cache)
         {
             _configuration = configuration;
             _logger = logger;
+            _cache = cache;
         }
 
         [HttpGet]
@@ -24,8 +31,20 @@ namespace weylo.user.api.Controllers
                 return BadRequest(new { error = "City parameter is required" });
             }
 
+            // Нормализуем ключ для Redis
+            var cacheKey = $"weather:{city.ToLowerInvariant()}";
+            
             try
             {
+                var cachedData = await _cache.GetStringAsync(cacheKey);
+                if (!string.IsNullOrEmpty(cachedData))
+                {
+                    _logger.LogInformation("Cache hit for city {City}", city);
+                    return Content(cachedData, "application/json");
+                }
+
+                _logger.LogInformation("Cache miss for city {City}. Fetching from API...", city);
+                
                 var weatherKey = _configuration["WeatherApiKey"];
                 if (string.IsNullOrEmpty(weatherKey))
                 {
@@ -44,7 +63,16 @@ namespace weylo.user.api.Controllers
                 }
 
                 var content = await response.Content.ReadAsStringAsync();
-                return Content(content, "application/json");
+                
+                var cacheOptions = new DistributedCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(60),
+                };
+                
+                await _cache.SetStringAsync(cacheKey, content, cacheOptions);
+                _logger.LogInformation($"Data cached for city {city} with key {cacheKey}");
+
+                return base.Ok(JsonSerializer.Deserialize<object>(content));
             }
             catch (Exception ex)
             {
@@ -52,5 +80,6 @@ namespace weylo.user.api.Controllers
                 return StatusCode(500, new { error = "Internal server error" });
             }
         }
+        
     }
 }

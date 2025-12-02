@@ -84,6 +84,48 @@
                 "POST"
             ]
         },
+             {
+            "DownstreamPathTemplate": "/api/Auth/request-otp",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "identity_api",
+                    "Port": 80
+                }
+            ],
+            "UpstreamPathTemplate": "/api/auth/request-otp",
+            "UpstreamHttpMethod": [
+                "POST"
+            ]
+        },
+             {
+            "DownstreamPathTemplate": "/api/Auth/verify-otp",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "identity_api",
+                    "Port": 80
+                }
+            ],
+            "UpstreamPathTemplate": "/api/auth/verify-otp",
+            "UpstreamHttpMethod": [
+                "POST"
+            ]
+        },
+             {
+            "DownstreamPathTemplate": "/api/Auth/reset-password-otp",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "identity_api",
+                    "Port": 80
+                }
+            ],
+            "UpstreamPathTemplate": "/api/auth/reset-password-otp",
+            "UpstreamHttpMethod": [
+                "POST"
+            ]
+        },
         {
             "DownstreamPathTemplate": "/api/Auth/verify-email",
             "DownstreamScheme": "http",

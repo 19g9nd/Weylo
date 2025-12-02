@@ -71,6 +71,12 @@ var key = Encoding.ASCII.GetBytes(jwtSettings.Key);
 builder.Services.AddSingleton(jwtSettings);
 builder.Services.AddScoped<IJwtService, JwtService>();
 
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = Environment.GetEnvironmentVariable("ConnectionStrings__RedisDb");
+    options.InstanceName = "WeatherCache_";
+});
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;

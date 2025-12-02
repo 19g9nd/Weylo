@@ -10,8 +10,11 @@ namespace weylo.identity.Services.Interfaces
         Task<bool> LogoutAsync(int userId);
         Task<(bool success, string? error)> ForgotPasswordAsync(string email);
         Task<(bool success, string? error)> ResetPasswordAsync(ResetPasswordDto resetPasswordDto);
-         Task<(bool success, string? error)> ChangePasswordAsync(int userId, ChangePasswordDto changePasswordDto);
+        Task<(bool success, string? error)> ChangePasswordAsync(int userId, ChangePasswordDto changePasswordDto);
         Task<(bool success, string? error)> VerifyEmailAsync(string token);
         Task<(bool success, string? error)> ResendVerificationEmailAsync(string email);
+        Task<(bool success, string? error)> RequestOtpAsync(RequestOtpDto request);
+        Task<(bool success, string? error)> VerifyOtpAsync(VerifyOtpDto request);
+        Task<(bool success, string? error)> ResetPasswordWithOtpAsync(ResetPasswordWithOtpDto request);
     }
 }

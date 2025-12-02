@@ -240,6 +240,175 @@ namespace weylo.identity.Services.Interfaces
             return (true, null);
         }
 
+        public async Task<(bool success, string? error)> RequestOtpAsync(RequestOtpDto request)
+        {
+            try
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+
+                if (user == null)
+                {
+                    // Не раскрываем существование email для безопасности
+                    return (true, null);
+                }
+
+                if (request.Purpose == OtpPurpose.EmailVerification && user.IsEmailVerified)
+                {
+                    return (false, "Email is already verified");
+                }
+
+                // Удаляем старые неиспользованные OTP коды для этого email и purpose
+                var oldOtps = await _context.OtpCodes
+                    .Where(o => o.Email == request.Email && o.Purpose == request.Purpose.ToString() && !o.IsUsed)
+                    .ToListAsync();
+
+                _context.OtpCodes.RemoveRange(oldOtps);
+
+                // Генерируем 6-значный код
+                var otpCode = new Random().Next(100000, 999999).ToString();
+
+                // Создаем новый OTP
+                var otp = new OtpCode
+                {
+                    Email = request.Email,
+                    Code = otpCode,
+                    Purpose = request.Purpose.ToString(),
+                    CreatedAt = DateTime.UtcNow,
+                    ExpiresAt = DateTime.UtcNow.AddMinutes(10),
+                    IsUsed = false,
+                    Attempts = 0
+                };
+
+                _context.OtpCodes.Add(otp);
+                await _context.SaveChangesAsync();
+
+                // Отправляем email
+                await _emailService.SendOtpEmailAsync(request.Email, otpCode, request.Purpose.ToString());
+
+                return (true, null);
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Failed to send OTP: {ex.Message}");
+            }
+        }
+
+        public async Task<(bool success, string? error)> VerifyOtpAsync(VerifyOtpDto request)
+        {
+            try
+            {
+                var otp = await _context.OtpCodes
+                    .Where(o => o.Email == request.Email
+                        && o.Code == request.OtpCode
+                        && o.Purpose == request.Purpose.ToString()
+                        && !o.IsUsed)
+                    .OrderByDescending(o => o.CreatedAt)
+                    .FirstOrDefaultAsync();
+
+                if (otp == null)
+                {
+                    return (false, "Invalid or expired OTP code");
+                }
+
+                if (otp.Attempts >= 3)
+                {
+                    return (false, "Too many attempts. Please request a new code");
+                }
+
+                if (otp.ExpiresAt < DateTime.UtcNow)
+                {
+                    return (false, "OTP code expired");
+                }
+
+                // Увеличиваем счетчик попыток
+                otp.Attempts++;
+                await _context.SaveChangesAsync();
+
+                if (otp.Code != request.OtpCode)
+                {
+                    return (false, "Invalid OTP code");
+                }
+
+                // Помечаем как использованный
+                otp.IsUsed = true;
+                await _context.SaveChangesAsync();
+
+                // Если это верификация email, обновляем пользователя
+                if (request.Purpose == OtpPurpose.EmailVerification)
+                {
+                    var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+                    if (user != null)
+                    {
+                        user.IsEmailVerified = true;
+                        user.EmailVerificationToken = null;
+                        user.UpdatedAt = DateTime.UtcNow;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+
+                return (true, null);
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Failed to verify OTP: {ex.Message}");
+            }
+        }
+
+        public async Task<(bool success, string? error)> ResetPasswordWithOtpAsync(ResetPasswordWithOtpDto request)
+        {
+            try
+            {
+                // Сначала проверяем OTP
+                var verifyResult = await VerifyOtpAsync(new VerifyOtpDto
+                {
+                    Email = request.Email,
+                    OtpCode = request.OtpCode,
+                    Purpose = OtpPurpose.PasswordReset
+                });
+
+                if (!verifyResult.success)
+                {
+                    return (false, verifyResult.error);
+                }
+
+                // Находим пользователя
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+                if (user == null)
+                {
+                    return (false, "User not found");
+                }
+
+                // Обновляем пароль
+                user.PasswordHash = PasswordHelper.HashPassword(request.NewPassword);
+                user.PasswordResetToken = null;
+                user.PasswordResetTokenExpiry = null;
+                user.UpdatedAt = DateTime.UtcNow;
+
+                // Очищаем refresh token для безопасности
+                user.RefreshToken = null;
+                user.RefreshTokenExpiry = null;
+
+                await _context.SaveChangesAsync();
+
+                return (true, null);
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Failed to reset password: {ex.Message}");
+            }
+        }
+
+        // Добавьте helper метод для очистки старых OTP (опционально)
+        public async Task CleanupExpiredOtpCodesAsync()
+        {
+            var expiredOtps = await _context.OtpCodes
+                .Where(o => o.ExpiresAt < DateTime.UtcNow || o.IsUsed)
+                .ToListAsync();
+
+            _context.OtpCodes.RemoveRange(expiredOtps);
+            await _context.SaveChangesAsync();
+        }
+
         private string GenerateJwtToken(User user)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
