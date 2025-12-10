@@ -226,6 +226,155 @@ namespace weylo.user.api.Services
             return null;
         }
 
+        // Добавьте в класс GooglePlacesCategoryMapper
+
+        /// <summary>
+        /// Extracts subcategories (cuisine types, amenities) from Google types
+        /// </summary>
+        public List<string> ExtractSubcategories(string[] googleTypes)
+        {
+            if (googleTypes == null || !googleTypes.Any())
+                return new List<string>();
+
+            var subcategories = new HashSet<string>();
+
+            // Cuisine types
+            var cuisineTypes = new[]
+            {
+        "american_restaurant", "chinese_restaurant", "french_restaurant",
+        "greek_restaurant", "indian_restaurant", "indonesian_restaurant",
+        "italian_restaurant", "japanese_restaurant", "korean_restaurant",
+        "mediterranean_restaurant", "mexican_restaurant", "middle_eastern_restaurant",
+        "spanish_restaurant", "thai_restaurant", "turkish_restaurant",
+        "vietnamese_restaurant", "seafood_restaurant", "steak_house",
+        "sushi_restaurant", "vegan_restaurant", "vegetarian_restaurant",
+        "hamburger_restaurant", "ramen_restaurant", "pizza_restaurant"
+    };
+
+            // Food service types
+            var foodServiceTypes = new[]
+            {
+        "bakery", "cafe", "coffee_shop", "ice_cream_shop",
+        "dessert_shop", "sandwich_shop", "fast_food_restaurant"
+    };
+
+            // Entertainment types
+            var entertainmentTypes = new[]
+            {
+        "bar", "night_club", "casino", "movie_theater",
+        "bowling_alley", "arcade", "escape_room"
+    };
+
+            // Lodging types
+            var lodgingTypes = new[]
+            {
+        "hotel", "resort_hotel", "hostel", "motel",
+        "bed_and_breakfast", "guest_house", "campground"
+    };
+
+            // Shopping types
+            var shoppingTypes = new[]
+            {
+        "shopping_mall", "clothing_store", "jewelry_store",
+        "book_store", "electronics_store", "gift_shop"
+    };
+
+            foreach (var googleType in googleTypes)
+            {
+                var normalized = googleType.ToLower().Trim();
+
+                if (cuisineTypes.Contains(normalized))
+                    subcategories.Add(normalized);
+                else if (foodServiceTypes.Contains(normalized))
+                    subcategories.Add(normalized);
+                else if (entertainmentTypes.Contains(normalized))
+                    subcategories.Add(normalized);
+                else if (lodgingTypes.Contains(normalized))
+                    subcategories.Add(normalized);
+                else if (shoppingTypes.Contains(normalized))
+                    subcategories.Add(normalized);
+            }
+
+            _logger.LogInformation(
+                "Extracted {Count} subcategories from types: {Types} → {Subcategories}",
+                subcategories.Count,
+                string.Join(", ", googleTypes),
+                string.Join(", ", subcategories));
+
+            return subcategories.ToList();
+        }
+
+        /// <summary>
+        /// Get user-friendly display name for subcategory
+        /// </summary>
+        public string GetSubcategoryDisplayName(string subcategory)
+        {
+            var displayNames = new Dictionary<string, string>
+            {
+                // Cuisines
+                ["american_restaurant"] = "American",
+                ["chinese_restaurant"] = "Chinese",
+                ["french_restaurant"] = "French",
+                ["italian_restaurant"] = "Italian",
+                ["japanese_restaurant"] = "Japanese",
+                ["mexican_restaurant"] = "Mexican",
+                ["turkish_restaurant"] = "Turkish",
+                ["indian_restaurant"] = "Indian",
+                ["thai_restaurant"] = "Thai",
+                ["korean_restaurant"] = "Korean",
+                ["vietnamese_restaurant"] = "Vietnamese",
+                ["mediterranean_restaurant"] = "Mediterranean",
+                ["middle_eastern_restaurant"] = "Middle Eastern",
+                ["greek_restaurant"] = "Greek",
+                ["spanish_restaurant"] = "Spanish",
+                ["seafood_restaurant"] = "Seafood",
+                ["steak_house"] = "Steakhouse",
+                ["sushi_restaurant"] = "Sushi",
+                ["vegan_restaurant"] = "Vegan",
+                ["vegetarian_restaurant"] = "Vegetarian",
+                ["pizza_restaurant"] = "Pizza",
+                ["hamburger_restaurant"] = "Burgers",
+                ["ramen_restaurant"] = "Ramen",
+
+                // Food service
+                ["bakery"] = "Bakery",
+                ["cafe"] = "Café",
+                ["coffee_shop"] = "Coffee Shop",
+                ["ice_cream_shop"] = "Ice Cream",
+                ["dessert_shop"] = "Desserts",
+                ["sandwich_shop"] = "Sandwiches",
+                ["fast_food_restaurant"] = "Fast Food",
+
+                // Entertainment
+                ["bar"] = "Bar",
+                ["night_club"] = "Night Club",
+                ["casino"] = "Casino",
+                ["movie_theater"] = "Cinema",
+                ["bowling_alley"] = "Bowling",
+                ["arcade"] = "Arcade",
+                ["escape_room"] = "Escape Room",
+
+                // Lodging
+                ["hotel"] = "Hotel",
+                ["resort_hotel"] = "Resort",
+                ["hostel"] = "Hostel",
+                ["motel"] = "Motel",
+                ["bed_and_breakfast"] = "B&B",
+                ["guest_house"] = "Guest House",
+                ["campground"] = "Campground",
+
+                // Shopping
+                ["shopping_mall"] = "Shopping Mall",
+                ["clothing_store"] = "Clothing",
+                ["jewelry_store"] = "Jewelry",
+                ["book_store"] = "Bookstore",
+                ["electronics_store"] = "Electronics",
+                ["gift_shop"] = "Gifts"
+            };
+
+            return displayNames.TryGetValue(subcategory, out var name) ? name : subcategory;
+        }
+
         public async Task<Category?> GetBestMatchingCategoryAsync(string googlePlaceId)
         {
             var destination = await _context.Destinations

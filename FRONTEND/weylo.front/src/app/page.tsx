@@ -147,14 +147,14 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
-                name: "Bali, Indonesia",
+                name: "Rome, Italy",
                 image:
-                  "https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=870&q=80",
+                  "https://images.unsplash.com/photo-1552832230-c0197dd311b5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=870&q=80",
               },
               {
-                name: "Santorini, Greece",
+                name: "Paris, France",
                 image:
-                  "https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1032&q=80",
+                  "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=870&q=80",
               },
               {
                 name: "Kyoto, Japan",
@@ -183,7 +183,10 @@ export default function Home() {
                     Experience the beauty and culture of this amazing
                     destination.
                   </p>
-                  <button className="text-yellow font-medium hover:text-yellow/80">
+                  <button
+                    className="text-yellow font-medium hover:text-yellow/80"
+                    onClick={() => router.push("/map")}
+                  >
                     Explore Now →
                   </button>
                 </div>
@@ -193,70 +196,40 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Travel Packages */}
-      <section className="py-16 px-4 md:px-16 bg-background">
+      {/* Why Choose Us */}
+      <section className="py-16 px-4 md:px-16 bg-gradient-to-b from-background to-gray-100">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-4 text-main-text">
-            Popular Travel Packages
+          <h2 className="text-3xl font-bold text-center mb-12 text-main-text">
+            Why Choose Weylo Travel
           </h2>
-          <p className="text-brown-text text-center mb-12 max-w-3xl mx-auto">
-            Choose from our carefully curated travel packages designed to give
-            you the best experience at affordable prices.
-          </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
-                name: "Tropical Paradise",
-                price: "$1,299",
-                days: "7 Days",
-                image:
-                  "https://images.unsplash.com/photo-1544551763-46a013bb70d5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=870&q=80",
+                icon: "🌍",
+                title: "Global Coverage",
+                description:
+                  "Access to thousands of destinations worldwide with detailed local insights",
               },
               {
-                name: "European Adventure",
-                price: "$2,499",
-                days: "14 Days",
-                image:
-                  "https://images.unsplash.com/photo-1544551763-46a013bb70d5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=870&q=80",
+                icon: "💎",
+                title: "Premium Features",
+                description:
+                  "Offline maps, personalized recommendations, and smart search",
               },
               {
-                name: "Cultural Journey",
-                price: "$1,899",
-                days: "10 Days",
-                image:
-                  "https://images.unsplash.com/photo-1544551763-46a013bb70d5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=870&q=80",
+                icon: "📱",
+                title: "Cross-Platform",
+                description:
+                  "Seamless experience across mobile app and web platform",
               },
-            ].map((packageItem, index) => (
-              <div
-                key={index}
-                className="rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 bg-white"
-              >
-                <div className="relative h-56">
-                  <Image
-                    src={packageItem.image}
-                    alt={packageItem.name}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  />
-                </div>
-                <div className="p-6">
-                  <div className="flex justify-between items-center mb-2">
-                    <h3 className="text-xl font-semibold text-main-text">
-                      {packageItem.name}
-                    </h3>
-                    <span className="text-yellow font-bold">
-                      {packageItem.price}
-                    </span>
-                  </div>
-                  <p className="text-brown-text mb-4">
-                    {packageItem.days} • All inclusive
-                  </p>
-                  <button className="w-full bg-yellow hover:bg-yellow/90 text-main-text font-medium py-2 px-4 rounded">
-                    Book Now
-                  </button>
-                </div>
+            ].map((feature, index) => (
+              <div key={index} className="text-center p-6">
+                <div className="text-4xl mb-4">{feature.icon}</div>
+                <h3 className="text-xl font-semibold text-main-text mb-3">
+                  {feature.title}
+                </h3>
+                <p className="text-brown-text">{feature.description}</p>
               </div>
             ))}
           </div>

@@ -57,7 +57,6 @@ namespace weylo.identity.Services
             await SendEmailAsync(email, subject, body);
         }
 
-        // Новый метод для отправки OTP
         public async Task SendOtpEmailAsync(string email, string otpCode, string purpose)
         {
             var subject = purpose == "EmailVerification" 

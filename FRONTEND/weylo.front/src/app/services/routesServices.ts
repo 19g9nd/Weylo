@@ -1,7 +1,7 @@
 import { ApiResponse } from "../types/shared";
 import httpClient from "./httpClient";
-import { RouteDto, RouteDetailsDto, RouteItemDto } from "../types/route";
 import { CreateRouteRequest, UpdateRouteRequest, UpdateRouteItemRequest, AddPlaceToRouteRequest, ReorderPlacesRequest } from "../types/requests";
+import { RouteDetailsDto, RouteDto, RouteItemDto } from "../types/route";
 
 export const routesService = {
   async getMyRoutes(): Promise<ApiResponse<RouteDto[]>> {

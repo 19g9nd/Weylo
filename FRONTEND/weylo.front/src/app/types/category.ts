@@ -2,8 +2,10 @@
  * Base category model (matches Category in C#)
  */
 export interface Category {
+  color: string;
   id: number;
   name: string;
+  priority: number;
   description?: string | null;
   icon?: string | null;
   googleTypes?: string | null; // "museum,tourist_attraction"
@@ -18,6 +20,9 @@ export interface CategoryDto {
   description?: string | null;
   icon?: string | null;
   googleTypes?: string | null;
+  color?: string | null;
+  displayOrder?: number | null;
+  isAutoAssignable?: boolean | null;
 }
 
 /**
@@ -55,9 +60,9 @@ export interface CategoryFilters {
 /**
  * Category sorting parameters
  */
-export type CategorySortField = 'name' | 'createdAt' | 'destinationsCount';
+export type CategorySortField = "name" | "createdAt" | "destinationsCount";
 
 export interface CategorySortOptions {
   field: CategorySortField;
-  direction: 'asc' | 'desc';
+  direction: "asc" | "desc";
 }

@@ -15,6 +15,20 @@
             ]
         },
         {
+            "DownstreamPathTemplate": "/api/Auth/mobile/register",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "identity_api",
+                    "Port": 80
+                }
+            ],
+            "UpstreamPathTemplate": "/api/auth/mobile/register",
+            "UpstreamHttpMethod": [
+                "POST"
+            ]
+        },
+        {
             "DownstreamPathTemplate": "/api/Auth/login",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
@@ -84,7 +98,7 @@
                 "POST"
             ]
         },
-             {
+        {
             "DownstreamPathTemplate": "/api/Auth/request-otp",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
@@ -98,7 +112,7 @@
                 "POST"
             ]
         },
-             {
+        {
             "DownstreamPathTemplate": "/api/Auth/verify-otp",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
@@ -112,7 +126,7 @@
                 "POST"
             ]
         },
-             {
+        {
             "DownstreamPathTemplate": "/api/Auth/reset-password-otp",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
@@ -138,6 +152,20 @@
             "UpstreamPathTemplate": "/api/auth/verify-email",
             "UpstreamHttpMethod": [
                 "GET"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Auth/delete-account",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "identity_api",
+                    "Port": 80
+                }
+            ],
+            "UpstreamPathTemplate": "/api/auth/delete-account",
+            "UpstreamHttpMethod": [
+                "POST"
             ]
         },
         {
@@ -309,6 +337,20 @@
             ]
         },
         {
+            "DownstreamPathTemplate": "/api/Destinations/{id}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/admin/destinations/{id}",
+            "UpstreamHttpMethod": [
+                "PUT"
+            ]
+        },
+        {
             "DownstreamPathTemplate": "/api/Destinations/by-city/{cityId}",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
@@ -345,7 +387,7 @@
                     "Port": 81
                 }
             ],
-            "UpstreamPathTemplate": "/api/destinations/{destinationId}",
+            "UpstreamPathTemplate": "/api/admin/destinations/{destinationId}",
             "UpstreamHttpMethod": [
                 "DELETE"
             ]
@@ -421,7 +463,7 @@
             ]
         },
         {
-            "DownstreamPathTemplate": "/api/Route/{routeId}/destinations",
+            "DownstreamPathTemplate": "/api/Route/{routeId}/items",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
@@ -429,13 +471,13 @@
                     "Port": 81
                 }
             ],
-            "UpstreamPathTemplate": "/api/route/{routeId}/destinations",
+            "UpstreamPathTemplate": "/api/route/{routeId}/items",
             "UpstreamHttpMethod": [
                 "POST"
             ]
         },
         {
-            "DownstreamPathTemplate": "/api/Route/{routeId}/destinations/{destinationId}",
+            "DownstreamPathTemplate": "/api/Route/items/{routeItemId}",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
@@ -443,13 +485,13 @@
                     "Port": 81
                 }
             ],
-            "UpstreamPathTemplate": "/api/route/{routeId}/destinations/{destinationId}",
+            "UpstreamPathTemplate": "/api/route/items/{routeItemId}",
             "UpstreamHttpMethod": [
-                "DELETE"
+                "PUT"
             ]
         },
         {
-            "DownstreamPathTemplate": "/api/Route/destinations/{routeItemId}",
+            "DownstreamPathTemplate": "/api/Route/{routeId}/items/{routeItemId}",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
@@ -457,9 +499,9 @@
                     "Port": 81
                 }
             ],
-            "UpstreamPathTemplate": "/api/route/destinations/{routeItemId}",
+            "UpstreamPathTemplate": "/api/route/{routeId}/items/{routeItemId}",
             "UpstreamHttpMethod": [
-                "PUT"
+                "DELETE"
             ]
         },
         {
@@ -488,6 +530,124 @@
             "UpstreamPathTemplate": "/api/route/{routeId}/destinations/reorder",
             "UpstreamHttpMethod": [
                 "PUT"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/categories",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/categories",
+            "UpstreamHttpMethod": [
+                "GET"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/categories/{id}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/categories/{id}",
+            "UpstreamHttpMethod": [
+                "GET",
+                "PUT",
+                "DELETE"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/categories/{id}/can-delete",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/categories/{id}/can-delete",
+            "UpstreamHttpMethod": [
+                "GET"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/categories/{categoryId}/destinations",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/categories/{categoryId}/destinations",
+            "UpstreamHttpMethod": [
+                "GET"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/categories",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/admin/categories",
+            "UpstreamHttpMethod": [
+                "POST",
+                "GET"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/categories/{categoryId}/destinations/{destinationId}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/admin/categories/{categoryId}/destinations/{destinationId}",
+            "UpstreamHttpMethod": [
+                "PUT",
+                "GET"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/categories/transfer",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/admin/categories/transfer",
+            "UpstreamHttpMethod": [
+                "POST"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/categories/{id}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "user_api",
+                    "Port": 81
+                }
+            ],
+            "UpstreamPathTemplate": "/api/admin/categories/{id}",
+            "UpstreamHttpMethod": [
+                "PUT",
+                "DELETE",
+                "GET"
             ]
         },
         {
@@ -542,6 +702,20 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/admin/countries",
+            "UpstreamHttpMethod": [
+                "GET"
+            ]
+        },
+         {
+            "DownstreamPathTemplate": "/api/Countries/{countryId}/cities/by-name",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "admin_api",
+                    "Port": 82
+                }
+            ],
+            "UpstreamPathTemplate": "/api/admin/countries/{countryId}/cities/by-name",
             "UpstreamHttpMethod": [
                 "GET"
             ]
@@ -646,6 +820,65 @@
             ]
         },
         {
+            "DownstreamPathTemplate": "/api/Cities/fetch-details",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "admin_api",
+                    "Port": 82
+                }
+            ],
+            "UpstreamPathTemplate": "/api/admin/cities/fetch-details",
+            "UpstreamHttpMethod": [
+                "POST"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Cities",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "admin_api",
+                    "Port": 82
+                }
+            ],
+            "UpstreamPathTemplate": "/api/admin/cities",
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Cities/{id}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "admin_api",
+                    "Port": 82
+                }
+            ],
+            "UpstreamPathTemplate": "/api/admin/cities/{id}",
+            "UpstreamHttpMethod": [
+                "GET",
+                "PUT",
+                "DELETE"
+            ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/Cities/auto-detect",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "admin_api",
+                    "Port": 82
+                }
+            ],
+            "UpstreamPathTemplate": "/api/admin/cities/auto-detect",
+            "UpstreamHttpMethod": [
+                "POST"
+            ]
+        },
+        {
             "DownstreamPathTemplate": "/api/Countries",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
@@ -702,69 +935,7 @@
             ]
         },
         {
-            "DownstreamPathTemplate": "/api/admin/Categories",
-            "DownstreamScheme": "http",
-            "DownstreamHostAndPorts": [
-                {
-                    "Host": "admin_api",
-                    "Port": 82
-                }
-            ],
-            "UpstreamPathTemplate": "/api/admin/categories",
-            "UpstreamHttpMethod": [
-                "GET",
-                "POST"
-            ]
-        },
-        {
-            "DownstreamPathTemplate": "/api/admin/Categories/{id}",
-            "DownstreamScheme": "http",
-            "DownstreamHostAndPorts": [
-                {
-                    "Host": "admin_api",
-                    "Port": 82
-                }
-            ],
-            "UpstreamPathTemplate": "/api/admin/categories/{id}",
-            "UpstreamHttpMethod": [
-                "GET",
-                "PUT",
-                "DELETE"
-            ]
-        },
-        {
-            "DownstreamPathTemplate": "/api/admin/cities",
-            "DownstreamScheme": "http",
-            "DownstreamHostAndPorts": [
-                {
-                    "Host": "admin_api",
-                    "Port": 82
-                }
-            ],
-            "UpstreamPathTemplate": "/api/admin/cities",
-            "UpstreamHttpMethod": [
-                "GET",
-                "POST"
-            ]
-        },
-        {
-            "DownstreamPathTemplate": "/api/admin/cities/{id}",
-            "DownstreamScheme": "http",
-            "DownstreamHostAndPorts": [
-                {
-                    "Host": "admin_api",
-                    "Port": 82
-                }
-            ],
-            "UpstreamPathTemplate": "/api/admin/cities/{id}",
-            "UpstreamHttpMethod": [
-                "GET",
-                "PUT",
-                "DELETE"
-            ]
-        },
-        {
-            "DownstreamPathTemplate": "/api/admin/cities/merge-duplicates",
+            "DownstreamPathTemplate": "/api/Cities/merge-duplicates",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {

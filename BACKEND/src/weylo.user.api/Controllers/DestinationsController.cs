@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using weylo.shared.Constants;
 using weylo.user.api.DTOS;
 using weylo.user.api.Requests;
 using weylo.user.api.Services.Interfaces;
@@ -181,32 +183,6 @@ namespace weylo.user.api.Controllers
         }
 
         /// <summary>
-        /// Delete destination (only if not used in routes)
-        /// </summary>
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteDestination(int id)
-        {
-            try
-            {
-                var deleted = await _service.DeleteDestinationAsync(id);
-                if (!deleted)
-                {
-                    return BadRequest(new
-                    {
-                        error = "Cannot delete destination. It may be used in routes or doesn't exist."
-                    });
-                }
-
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting destination {DestinationId}", id);
-                return StatusCode(500, new { error = "Failed to delete destination" });
-            }
-        }
-
-        /// <summary>
         /// Get destinations by city
         /// </summary>
         [HttpGet("by-city/{cityId}")]
@@ -220,6 +196,99 @@ namespace weylo.user.api.Controllers
             {
                 _logger.LogError(ex, "Error getting destinations for city {CityId}", cityId);
                 return StatusCode(500, new { error = "Failed to load destinations" });
+            }
+        }
+        /// <summary>
+        /// Admin: Update destination details
+        /// </summary>
+        [HttpPut("{id}")]
+        public async Task<ActionResult<DestinationDto>> UpdateDestination(
+            int id,
+            [FromBody] AdminUpdateDestinationRequest request)
+        {
+            try
+            {
+                var result = await _service.AdminUpdateDestinationAsync(id, request);
+
+                if (result == null)
+                    return NotFound(new { error = "Destination not found" });
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating destination {DestinationId}", id);
+                return StatusCode(500, new { error = "Failed to update destination" });
+            }
+        }
+
+        /// <summary>
+        /// Admin: Delete destination
+        /// </summary>
+        [HttpDelete("{id}")]
+        [Authorize(Policy = Policies.AdminOrSuperAdmin)]
+        public async Task<IActionResult> DeleteDestination(int id)
+        {
+            try
+            {
+                var deleted = await _service.AdminDeleteDestinationAsync(id);
+
+                if (!deleted)
+                {
+                    return BadRequest(new
+                    {
+                        error = "Cannot delete destination. It may be used in routes/favourites or doesn't exist."
+                    });
+                }
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting destination {DestinationId}", id);
+                return StatusCode(500, new { error = "Failed to delete destination" });
+            }
+        }
+        
+        /// <summary>
+        /// Filter destinations with query parameters (simple filters)
+        /// </summary>
+        [HttpGet("filter")]
+        public async Task<ActionResult<IEnumerable<DestinationDto>>> FilterDestinations(
+    [FromQuery] int? categoryId = null,
+    [FromQuery] int? cityId = null,
+    [FromQuery] string? subcategories = null,
+    [FromQuery] float? minRating = null,
+    [FromQuery] int? maxPriceLevel = null,
+    [FromQuery] bool? wheelchairAccessible = null,
+    [FromQuery] bool? takeout = null,
+    [FromQuery] bool? delivery = null,
+    [FromQuery] int take = 20)
+        {
+            try
+            {
+                var filter = new DestinationFilterRequest
+                {
+                    CategoryId = categoryId,
+                    CityId = cityId,
+                    Subcategories = !string.IsNullOrEmpty(subcategories)
+                        ? subcategories.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        : null,
+                    MinRating = minRating,
+                    MaxPriceLevel = maxPriceLevel,
+                    WheelchairAccessible = wheelchairAccessible,
+                    Takeout = takeout,
+                    Delivery = delivery,
+                    Take = take
+                };
+
+                var destinations = await _service.FilterDestinationsAsync(filter);
+                return Ok(destinations);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error filtering destinations");
+                return StatusCode(500, new { error = "Internal server error" });
             }
         }
 

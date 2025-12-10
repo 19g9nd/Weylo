@@ -31,7 +31,6 @@ namespace weylo.user.api.Controllers
                 return BadRequest(new { error = "City parameter is required" });
             }
 
-            // Нормализуем ключ для Redis
             var cacheKey = $"weather:{city.ToLowerInvariant()}";
             
             try

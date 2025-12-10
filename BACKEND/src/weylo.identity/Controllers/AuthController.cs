@@ -29,6 +29,26 @@ namespace weylo.identity.Controllers
         }
 
         /// <summary>
+        /// Mobile registration - creates user and sends OTP for verification
+        /// </summary>
+        [HttpPost("mobile/register")]
+        public async Task<IActionResult> MobileRegister([FromBody] RegisterDto registerDto)
+        {
+            var (response, error) = await _authService.MobileRegisterAsync(registerDto);
+
+            if (error != null)
+            {
+                return BadRequest(new { message = error });
+            }
+
+            return Ok(new
+            {
+                message = "Registration successful. Please check your email for verification code.",
+                data = response
+            });
+        }
+
+        /// <summary>
         /// Register a new user
         /// </summary>
         /// <param name="registerDto">User registration data</param>
@@ -307,6 +327,46 @@ namespace weylo.identity.Controllers
         }
 
         /// <summary>
+        /// Delete current user account (requires password confirmation)
+        /// </summary>
+        /// <param name="deleteAccountDto">Password confirmation</param>
+        /// <returns>Account deletion result</returns>
+        /// <remarks>
+        /// Example request:
+        /// 
+        ///     POST /api/auth/delete-account
+        ///     {
+        ///         "password": "YourPassword123!"
+        ///     }
+        /// 
+        /// </remarks>
+        /// <response code="200">Account deleted successfully</response>
+        /// <response code="400">Invalid password or deletion failed</response>
+        /// <response code="401">User not authorized</response>
+        [HttpPost("delete-account")]
+        [Authorize]
+        [ProducesResponseType(typeof(object), 200)]
+        [ProducesResponseType(typeof(object), 400)]
+        [ProducesResponseType(typeof(object), 401)]
+        public async Task<IActionResult> DeleteAccount([FromBody] DeleteAccountDto deleteAccountDto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+                return Unauthorized(new { error = "Invalid user token" });
+
+            var (success, error) = await _authService.DeleteAccountAsync(userId, deleteAccountDto.Password);
+
+            if (!success)
+                return BadRequest(new { error = error ?? "Failed to delete account" });
+
+            return Ok(new { message = "Account deleted successfully" });
+        }
+
+
+        /// <summary>
         /// Email address verification
         /// </summary>
         /// <param name="token">Verification token from email</param>
@@ -364,6 +424,7 @@ namespace weylo.identity.Controllers
 
             return Ok(new { message = "Verification email sent again" });
         }
+
         /// <summary>
         /// Request OTP code for mobile (email verification or password reset)
         /// </summary>

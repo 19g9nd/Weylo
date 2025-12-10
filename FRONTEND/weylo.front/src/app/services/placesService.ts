@@ -15,14 +15,17 @@ export interface SavePlaceRequest {
   googleTypes?: string[];
 }
 
-export interface UpdatePlaceRequest {
+export interface AdminUpdatePlaceRequest {
   name?: string;
-  category?: string;
+  categoryId?: number;
   cachedAddress?: string;
+  cachedDescription?: string;
+  cachedImageUrl?: string;
 }
 
 export const placesService = {
   basePath: "/api/destinations",
+  adminBasePath: "/api/admin/destinations",
 
   async savePlace(placeData: SavePlaceRequest): Promise<BasePlace | null> {
     const response = await httpClient.post<any>(
@@ -73,17 +76,6 @@ export const placesService = {
     return null;
   },
 
-  async deletePlace(id: number): Promise<boolean> {
-    const response = await httpClient.delete(`${this.basePath}/${id}`);
-
-    if (response.success) {
-      return true;
-    }
-
-    console.error(`Failed to delete place ${id}:`, response.error);
-    return false;
-  },
-
   async getPlacesByCity(cityId: number): Promise<BasePlace[]> {
     const response = await httpClient.get<any[]>(
       `${this.basePath}/by-city/${cityId}`
@@ -117,20 +109,38 @@ export const placesService = {
     return [];
   },
 
-  async updatePlace(
+  // ===== ADMIN METHODS =====
+
+  async adminUpdatePlace(
     placeId: number,
-    updateData: UpdatePlaceRequest
-  ): Promise<BasePlace | null> {
+    updateData: AdminUpdatePlaceRequest
+  ): Promise<{ success: boolean; data?: BasePlace; error?: string }> {
     const response = await httpClient.put<any>(
-      `${this.basePath}/${placeId}`,
+      `${this.adminBasePath}/${placeId}`,
       updateData
     );
 
     if (response.success && response.data) {
-      return transformCatalogPlace(response.data);
+      return {
+        success: true,
+        data: transformCatalogPlace(response.data),
+      };
     }
 
-    console.error(`Failed to update place ${placeId}:`, response.error);
-    return null;
+    return {
+      success: false,
+      error: response.error || "Failed to update place",
+    };
+  },
+
+  async deletePlace(id: number): Promise<boolean> {
+    const response = await httpClient.delete(`${this.adminBasePath}/${id}`);
+
+    if (response.success) {
+      return true;
+    }
+
+    console.error(`Failed to delete place ${id}:`, response.error);
+    return false;
   },
 };

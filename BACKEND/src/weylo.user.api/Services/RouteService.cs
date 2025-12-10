@@ -13,15 +13,17 @@ namespace weylo.user.api.Services
         private readonly UserDbContext _context;
         private readonly ICurrentUserService _currentUserService;
         private readonly IMapper _mapper;
+        private readonly ILogger<RouteService> _logger;
 
         public RouteService(
             UserDbContext context,
             ICurrentUserService currentUserService,
-            IMapper mapper)
+            IMapper mapper, ILogger<RouteService> logger)
         {
             _context = context;
             _currentUserService = currentUserService;
             _mapper = mapper;
+            _logger = logger;
         }
 
         public async Task<RouteDto> CreateRouteAsync(CreateRouteRequest request)
@@ -134,15 +136,16 @@ namespace weylo.user.api.Services
             return true;
         }
 
-        public async Task<bool> RemoveDestinationFromRouteAsync(int routeId, int destinationId)
+        public async Task<bool> RemoveDestinationFromRouteAsync(int routeId, int routeItemId)
         {
             var userId = _currentUserService.UserId;
 
+            // Get the specific route item by its ID
             var routeItem = await _context.RouteItems
                 .Include(ri => ri.Route)
-                .FirstOrDefaultAsync(ri => 
-                    ri.RouteId == routeId && 
-                    ri.DestinationId == destinationId && 
+                .FirstOrDefaultAsync(ri =>
+                    ri.Id == routeItemId &&
+                    ri.RouteId == routeId &&
                     ri.Route.UserId == userId);
 
             if (routeItem == null)
@@ -151,12 +154,13 @@ namespace weylo.user.api.Services
             var dayNumber = routeItem.DayNumber;
             var removedOrder = routeItem.OrderInDay;
 
+            // Remove the specific route item
             _context.RouteItems.Remove(routeItem);
 
-            // Обновляем порядок оставшихся мест в этом дне
+            // Update the order of remaining items in the same day
             var remainingItems = await _context.RouteItems
-                .Where(ri => ri.RouteId == routeId && 
-                           ri.DayNumber == dayNumber && 
+                .Where(ri => ri.RouteId == routeId &&
+                           ri.DayNumber == dayNumber &&
                            ri.OrderInDay > removedOrder)
                 .ToListAsync();
 
@@ -169,7 +173,6 @@ namespace weylo.user.api.Services
             await _context.SaveChangesAsync();
             return true;
         }
-
         public async Task<RouteDto> UpdateRouteAsync(int routeId, UpdateRouteRequest request)
         {
             var userId = _currentUserService.UserId;
@@ -200,7 +203,84 @@ namespace weylo.user.api.Services
 
             return _mapper.Map<RouteDto>(route);
         }
+        public async Task<bool> ReorderRouteDestinationsAsync(int routeId, int dayNumber, List<int> destinationOrder)
+        {
+            var userId = _currentUserService.UserId;
 
+            _logger.LogInformation("=== REORDER START ===");
+            _logger.LogInformation("Route: {RouteId}, Day: {DayNumber}, User: {UserId}", routeId, dayNumber, userId);
+            _logger.LogInformation("New order array: [{Order}]", string.Join(", ", destinationOrder));
+
+            var route = await _context.UserRoutes
+                .FirstOrDefaultAsync(r => r.Id == routeId && r.UserId == userId);
+
+            if (route == null)
+            {
+                _logger.LogWarning("Route not found");
+                return false;
+            }
+
+            // Получаем только элементы конкретного дня
+            var routeItems = await _context.RouteItems
+                .Where(ri => ri.RouteId == routeId && ri.DayNumber == dayNumber)
+                .ToListAsync();
+
+            _logger.LogInformation("Found {Count} items for day {DayNumber}:", routeItems.Count, dayNumber);
+            foreach (var item in routeItems)
+            {
+                _logger.LogInformation("  - Item ID: {Id}, Current OrderInDay: {Order}", item.Id, item.OrderInDay);
+            }
+
+            // Проверяем, что все элементы из destinationOrder существуют
+            foreach (var orderId in destinationOrder)
+            {
+                if (!routeItems.Any(ri => ri.Id == orderId))
+                {
+                    _logger.LogWarning("Item {ItemId} not found in day {DayNumber}!", orderId, dayNumber);
+                    return false;
+                }
+            }
+
+            // Устанавливаем новый порядок
+            _logger.LogInformation("Updating order:");
+            for (int i = 0; i < destinationOrder.Count; i++)
+            {
+                var routeItem = routeItems.First(ri => ri.Id == destinationOrder[i]);
+                var oldOrder = routeItem.OrderInDay;
+                var newOrder = i + 1;
+
+                _logger.LogInformation("  Item {ItemId}: {OldOrder} -> {NewOrder}",
+                    routeItem.Id, oldOrder, newOrder);
+
+                routeItem.OrderInDay = newOrder;
+            }
+
+            route.UpdatedAt = DateTime.UtcNow;
+
+            // Важно: проверяем, есть ли изменения для сохранения
+            var changeCount = _context.ChangeTracker.Entries()
+                .Count(e => e.State == EntityState.Modified);
+
+            _logger.LogInformation("Changes to save: {Count}", changeCount);
+
+            var savedCount = await _context.SaveChangesAsync();
+            _logger.LogInformation("Saved {Count} changes to database", savedCount);
+
+            // Проверяем результат после сохранения
+            var verifyItems = await _context.RouteItems
+                .Where(ri => ri.RouteId == routeId && ri.DayNumber == dayNumber)
+                .ToListAsync();
+
+            _logger.LogInformation("Verification after save:");
+            foreach (var item in verifyItems.OrderBy(i => i.OrderInDay))
+            {
+                _logger.LogInformation("  - Item ID: {Id}, OrderInDay: {Order}", item.Id, item.OrderInDay);
+            }
+
+            _logger.LogInformation("=== REORDER END ===");
+
+            return true;
+        }
         public async Task<RouteItemDto> UpdateRouteItemAsync(int routeItemId, UpdateRouteItemRequest request)
         {
             var userId = _currentUserService.UserId;
@@ -212,8 +292,8 @@ namespace weylo.user.api.Services
                 .Include(ri => ri.Destination)
                     .ThenInclude(d => d.City)
                     .ThenInclude(c => c.Country)
-                .FirstOrDefaultAsync(ri => 
-                    ri.Id == routeItemId && 
+                .FirstOrDefaultAsync(ri =>
+                    ri.Id == routeItemId &&
                     ri.Route.UserId == userId);
 
             if (routeItem == null)
@@ -269,35 +349,6 @@ namespace weylo.user.api.Services
                     item.OrderInDay--;
                 }
             }
-        }
-
-        public async Task<bool> ReorderRouteDestinationsAsync(int routeId, List<int> destinationOrder)
-        {
-            var userId = _currentUserService.UserId;
-
-            var route = await _context.UserRoutes
-                .FirstOrDefaultAsync(r => r.Id == routeId && r.UserId == userId);
-
-            if (route == null)
-                return false;
-
-            var routeItems = await _context.RouteItems
-                .Where(ri => ri.RouteId == routeId)
-                .ToListAsync();
-
-            // Простая реализация - можно улучшить при необходимости
-            for (int i = 0; i < destinationOrder.Count; i++)
-            {
-                var routeItem = routeItems.FirstOrDefault(ri => ri.Id == destinationOrder[i]);
-                if (routeItem != null)
-                {
-                    routeItem.OrderInDay = i + 1;
-                }
-            }
-
-            route.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
-            return true;
         }
     }
 }

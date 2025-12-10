@@ -25,7 +25,70 @@ namespace weylo.identity.Services.Interfaces
             _jwtSettings = jwtSettings.Value;
             _emailService = emailService;
         }
+        public async Task<(AuthResponseDto? response, string? error)> MobileRegisterAsync(RegisterDto registerDto)
+        {
+            try
+            {
+                // Check if user already exists
+                var existingUser = await _context.Users
+                    .FirstOrDefaultAsync(u => u.Email == registerDto.Email || u.Username == registerDto.Username);
 
+                if (existingUser != null)
+                {
+                    return (null, "User with this email or username already exists");
+                }
+
+                // Create new user (not verified yet)
+                var user = new User
+                {
+                    Email = registerDto.Email,
+                    Username = registerDto.Username,
+                    PasswordHash = PasswordHelper.HashPassword(registerDto.Password),
+                    IsEmailVerified = false,
+                    EmailVerificationToken = null, // We'll use OTP instead
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                _context.Users.Add(user);
+                await _context.SaveChangesAsync();
+
+                // Generate and send OTP code
+                var otpResult = await RequestOtpAsync(new RequestOtpDto
+                {
+                    Email = registerDto.Email,
+                    Purpose = OtpPurpose.EmailVerification
+                });
+
+                if (!otpResult.success)
+                {
+                    // Rollback user creation if OTP sending fails
+                    _context.Users.Remove(user);
+                    await _context.SaveChangesAsync();
+                    return (null, $"Registration failed: {otpResult.error}");
+                }
+
+                // Generate tokens (user can use the app but with limited access until verified)
+                var accessToken = GenerateJwtToken(user);
+                var refreshToken = GenerateRefreshToken();
+
+                // Save refresh token
+                user.RefreshToken = refreshToken;
+                user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpiryInDays);
+                await _context.SaveChangesAsync();
+
+                return (new AuthResponseDto
+                {
+                    AccessToken = accessToken,
+                    RefreshToken = refreshToken,
+                    ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpiryInMinutes),
+                }, null);
+            }
+            catch (Exception)
+            {
+                return (null, "Registration failed. Please try again.");
+            }
+        }
         public async Task<(AuthResponseDto? response, string? error)> RegisterAsync(RegisterDto registerDto)
         {
             // Check if user already exists
@@ -354,6 +417,46 @@ namespace weylo.identity.Services.Interfaces
             }
         }
 
+        public async Task<(bool success, string? error)> DeleteAccountAsync(int userId, string password)
+        {
+            try
+            {
+                var user = await _context.Users.FindAsync(userId);
+                if (user == null)
+                    return (false, "User not found");
+
+                // Verify password before deletion
+                if (!PasswordHelper.VerifyPassword(password, user.PasswordHash))
+                    return (false, "Incorrect password");
+
+                // Delete all user-related data
+                var otpCodes = await _context.OtpCodes
+                    .Where(o => o.Email == user.Email)
+                    .ToListAsync();
+                _context.OtpCodes.RemoveRange(otpCodes);
+
+                var routes = await _context.UserRoutes
+                    .Where(r => r.UserId == userId)
+                    .ToListAsync();
+                _context.UserRoutes.RemoveRange(routes);
+
+                var favourites = await _context.UserFavourites
+                    .Where(f => f.UserId == userId)
+                    .ToListAsync();
+                _context.UserFavourites.RemoveRange(favourites);
+
+                _context.Users.Remove(user);
+
+                await _context.SaveChangesAsync();
+
+                return (true, null);
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Failed to delete account: {ex.Message}");
+            }
+        }
+
         public async Task<(bool success, string? error)> ResetPasswordWithOtpAsync(ResetPasswordWithOtpDto request)
         {
             try
@@ -448,6 +551,7 @@ namespace weylo.identity.Services.Interfaces
         {
             return Guid.NewGuid().ToString("N");
         }
+
     }
 
 }

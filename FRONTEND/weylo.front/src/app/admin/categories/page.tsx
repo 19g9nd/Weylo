@@ -42,6 +42,9 @@ export default function CategoriesPage() {
     description: null,
     icon: null,
     googleTypes: null,
+    displayOrder: null,
+    color: null,
+    isAutoAssignable: null,
   });
 
   const router = useRouter();
@@ -82,6 +85,13 @@ export default function CategoriesPage() {
     }
   };
 
+  // Возвращаем пустую строку вместо null для совместимости с бэкендом
+  const cleanValue = (value: string | null | undefined): string => {
+    if (!value) return "";
+    const trimmed = value.trim();
+    return trimmed;
+  };
+
   const handleCreateCategory = async () => {
     if (!newCategory.name.trim()) {
       setError("Please enter a category name");
@@ -91,10 +101,15 @@ export default function CategoriesPage() {
     try {
       const categoryData: CategoryDto = {
         name: newCategory.name.trim(),
-        description: newCategory.description?.trim() || null,
-        icon: newCategory.icon?.trim() || null,
-        googleTypes: newCategory.googleTypes?.trim() || null,
+        description: cleanValue(newCategory.description),
+        icon: cleanValue(newCategory.icon),
+        googleTypes: cleanValue(newCategory.googleTypes),
+        color: cleanValue(newCategory.color), // Важно: не null!
+        displayOrder: newCategory.displayOrder,
+        isAutoAssignable: newCategory.isAutoAssignable ?? false,
       };
+
+      console.log("Creating category:", categoryData);
 
       const response = await createCategory(categoryData);
 
@@ -108,6 +123,7 @@ export default function CategoriesPage() {
         setError(response.error || "Failed to create category");
       }
     } catch (err) {
+      console.error("Create error:", err);
       setError("Network error occurred");
     }
   };
@@ -121,10 +137,15 @@ export default function CategoriesPage() {
     try {
       const categoryData: CategoryDto = {
         name: newCategory.name.trim(),
-        description: newCategory.description?.trim() || null,
-        icon: newCategory.icon?.trim() || null,
-        googleTypes: newCategory.googleTypes?.trim() || null,
+        description: cleanValue(newCategory.description),
+        icon: cleanValue(newCategory.icon),
+        color: cleanValue(newCategory.color), // Важно: не null!
+        googleTypes: cleanValue(newCategory.googleTypes),
+        displayOrder: newCategory.displayOrder,
+        isAutoAssignable: newCategory.isAutoAssignable ?? false,
       };
+
+      console.log("Updating category:", categoryData);
 
       const response = await updateCategory(editingCategory.id, categoryData);
 
@@ -138,6 +159,7 @@ export default function CategoriesPage() {
         setError(response.error || "Failed to update category");
       }
     } catch (err) {
+      console.error("Update error:", err);
       setError("Network error occurred");
     }
   };
@@ -169,9 +191,12 @@ export default function CategoriesPage() {
     setEditingCategory(category);
     setNewCategory({
       name: category.name,
-      description: category.description || "",
-      icon: category.icon || "",
-      googleTypes: category.googleTypes || "",
+      description: category.description ?? null,
+      icon: category.icon ?? null,
+      color: category.color ?? "#4ECDC4", // Дефолтный цвет
+      googleTypes: category.googleTypes ?? null,
+      displayOrder: category.priority ?? null,
+      isAutoAssignable: newCategory.isAutoAssignable ?? false,
     });
   };
 
@@ -180,9 +205,13 @@ export default function CategoriesPage() {
       name: "",
       description: null,
       icon: null,
+      color: null,
+      isAutoAssignable: null,
       googleTypes: null,
+      displayOrder: null,
     });
     setEditingCategory(null);
+    setError("");
   };
 
   const formatGoogleTypes = (
@@ -192,8 +221,9 @@ export default function CategoriesPage() {
     return googleTypes.split(",").map((type) => type.trim());
   };
 
+  // Функция для безопасного отображения значений в input
   const getInputValue = (value: string | null | undefined): string => {
-    return value || "";
+    return value ?? "";
   };
 
   if (isLoading) {
@@ -314,7 +344,10 @@ export default function CategoriesPage() {
                     <select
                       value={getInputValue(newCategory.icon)}
                       onChange={(e) =>
-                        setNewCategory({ ...newCategory, icon: e.target.value })
+                        setNewCategory({
+                          ...newCategory,
+                          icon: e.target.value || "",
+                        })
                       }
                       className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-yellow"
                     >
@@ -332,6 +365,61 @@ export default function CategoriesPage() {
                   </div>
                 </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-brown-text mb-2">
+                      Color *
+                    </label>
+                    <select
+                      value={getInputValue(newCategory.color)}
+                      onChange={(e) =>
+                        setNewCategory({
+                          ...newCategory,
+                          color: e.target.value || "#4ECDC4",
+                        })
+                      }
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-yellow"
+                    >
+                      <option value="">Select color...</option>
+                      <option value="#FF6B6B">🔴 Red</option>
+                      <option value="#4ECDC4">🔵 Blue</option>
+                      <option value="#FFD166">🟡 Yellow</option>
+                      <option value="#06D6A0">🟢 Green</option>
+                      <option value="#118AB2">🔷 Dark Blue</option>
+                      <option value="#EF476F">💖 Pink</option>
+                      <option value="#073B4C">⚫ Black</option>
+                      <option value="#7209B7">🟣 Purple</option>
+                    </select>
+                    <p className="text-xs text-brown-text mt-2">
+                      Used for UI display and highlighting
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-brown-text mb-2">
+                      Display Order (Priority)
+                    </label>
+                    <input
+                      type="number"
+                      value={newCategory.displayOrder ?? ""}
+                      onChange={(e) =>
+                        setNewCategory({
+                          ...newCategory,
+                          displayOrder: e.target.value
+                            ? parseInt(e.target.value)
+                            : null,
+                        })
+                      }
+                      placeholder="0"
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-yellow"
+                    />
+                    <p className="text-xs text-brown-text mt-2">
+                      Lower numbers appear first. Leave empty for default
+                      ordering.
+                    </p>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-brown-text mb-2">
                     Description
@@ -341,7 +429,7 @@ export default function CategoriesPage() {
                     onChange={(e) =>
                       setNewCategory({
                         ...newCategory,
-                        description: e.target.value,
+                        description: e.target.value || "",
                       })
                     }
                     placeholder="Describe what this category includes..."
@@ -360,7 +448,7 @@ export default function CategoriesPage() {
                     onChange={(e) =>
                       setNewCategory({
                         ...newCategory,
-                        googleTypes: e.target.value,
+                        googleTypes: e.target.value || "",
                       })
                     }
                     placeholder="museum,art_gallery,tourist_attraction"
@@ -370,6 +458,27 @@ export default function CategoriesPage() {
                     Enter Google Places API types separated by commas. These
                     will be used to automatically categorize places.
                   </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="isAutoAssignable"
+                    checked={newCategory.isAutoAssignable ?? false}
+                    onChange={(e) =>
+                      setNewCategory({
+                        ...newCategory,
+                        isAutoAssignable: e.target.checked,
+                      })
+                    }
+                    className="w-4 h-4 text-yellow focus:ring-yellow border-gray-300 rounded"
+                  />
+                  <label
+                    htmlFor="isAutoAssignable"
+                    className="text-sm text-brown-text"
+                  >
+                    Auto-assignable (places can be automatically categorized)
+                  </label>
                 </div>
 
                 <div className="flex gap-4 pt-4">
@@ -440,7 +549,13 @@ export default function CategoriesPage() {
                   >
                     {/* Header with Icon */}
                     <div className="flex items-center gap-4 mb-4">
-                      <div className="bg-yellow/20 p-3 rounded-xl">
+                      <div 
+                        className="p-3 rounded-xl"
+                        style={{ 
+                          backgroundColor: category.color ? `${category.color}20` : '#F0F0F0',
+                          color: category.color || '#666666'
+                        }}
+                      >
                         <CategoryIcon name={category.icon ?? null} />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -477,6 +592,21 @@ export default function CategoriesPage() {
                         )}
                       </div>
                     </div>
+
+                    {/* Color indicator */}
+                    {category.color && (
+                      <div className="mb-3">
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-4 h-4 rounded-full border border-gray-300"
+                            style={{ backgroundColor: category.color }}
+                          />
+                          <span className="text-xs text-brown-text">
+                            Color: {category.color}
+                          </span>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Footer */}
                     <div className="flex justify-between items-center pt-4 border-t border-gray-100">

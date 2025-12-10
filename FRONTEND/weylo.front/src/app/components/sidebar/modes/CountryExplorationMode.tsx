@@ -254,6 +254,9 @@ const CountryExplorationMode: React.FC<CountryExplorationModeProps> = ({
               const primaryCategory = getPrimaryCategory(place);
               const categoryIcon = primaryCategory?.icon || "📍";
               const categoryName = primaryCategory?.name || "Place";
+              
+              // Get image URL from photos array
+              const imageUrl = place.photos?.[0]?.getURI?.() || null;
 
               return (
                 <div
@@ -265,101 +268,135 @@ const CountryExplorationMode: React.FC<CountryExplorationModeProps> = ({
                   }`}
                   onClick={() => onPlaceSelect(place.placeId)}
                 >
-                  <div className="flex justify-between items-start gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">
-                          #{index + 1}
-                        </span>
-                        <span className="text-sm">{categoryIcon}</span>
-                        <h4 className="font-medium text-gray-900 truncate">
-                          {place.displayName}
-                        </h4>
+                  <div className="flex gap-3">
+                    {/* Image Section */}
+                    {imageUrl && (
+                      <div className="flex-shrink-0">
+                        <img
+                          src={imageUrl}
+                          alt={place.displayName || "Place image"}
+                          className="w-20 h-20 rounded-lg object-cover"
+                          onError={(e) => {
+                            // Fallback if image fails to load
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
                       </div>
-                      {place.formattedAddress && (
-                        <p className="text-sm text-gray-600 line-clamp-2 mb-2">
-                          {place.formattedAddress}
-                        </p>
-                      )}
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {place.rating && (
-                          <div className="flex items-center gap-1">
-                            <span>⭐</span>
-                            <span className="text-sm font-medium">
-                              {place.rating}
+                    )}
+                    
+                    {/* Content Section */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">
+                              #{index + 1}
                             </span>
-                            {place.userRatingsTotal && (
-                              <span className="text-xs text-gray-500">
-                                ({place.userRatingsTotal})
+                            <span className="text-sm">{categoryIcon}</span>
+                            <h4 className="font-medium text-gray-900 truncate">
+                              {place.displayName}
+                            </h4>
+                          </div>
+                          
+                          {/* Rating and Category */}
+                          <div className="flex items-center gap-2 flex-wrap mb-2">
+                            {place.rating && (
+                              <div className="flex items-center gap-1">
+                                <span>⭐</span>
+                                <span className="text-sm font-medium">
+                                  {place.rating.toFixed(1)}
+                                </span>
+                                {place.userRatingsTotal && (
+                                  <span className="text-xs text-gray-500">
+                                    ({place.userRatingsTotal.toLocaleString()})
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                              {categoryName}
+                            </span>
+                            {place.types &&
+                              place.types.slice(0, 2).map((type, idx) => (
+                                <span
+                                  key={idx}
+                                  className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded"
+                                >
+                                  {type.replace(/_/g, " ")}
+                                </span>
+                              ))}
+                          </div>
+                          
+                          {/* Address */}
+                          {place.formattedAddress && (
+                            <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+                              {place.formattedAddress}
+                            </p>
+                          )}
+                          
+                          {/* Additional Info */}
+                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                            {place.googleType && (
+                              <span className="truncate">
+                                {place.googleType.split(',')[0].replace(/_/g, ' ')}
+                              </span>
+                            )}
+                            {place.city && (
+                              <span className="flex items-center gap-1">
+                                <span>🏙️</span>
+                                {place.city}
+                              </span>
+                            )}
+                            {place.country && (
+                              <span className="flex items-center gap-1">
+                                <span>🌐</span>
+                                {place.country}
                               </span>
                             )}
                           </div>
-                        )}
-                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
-                          {categoryName}
-                        </span>
-                        {place.types &&
-                          place.types.slice(0, 2).map((type, idx) => (
-                            <span
-                              key={idx}
-                              className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded"
-                            >
-                              {type.replace(/_/g, " ")}
-                            </span>
-                          ))}
-                      </div>
-                    </div>
-                    <div className="flex gap-1">
-                      {/* Кнопка фаворита */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (isFavourite(place.placeId)) {
-                            onRemoveFromFavourites(place);
-                          } else {
-                            onAddToFavourites(place);
-                          }
-                        }}
-                        className={`p-2 rounded transition-colors ${
-                          isFavourite(place.placeId)
-                            ? "text-yellow-600 hover:bg-yellow-200"
-                            : "text-gray-600 hover:bg-gray-200"
-                        }`}
-                        title={
-                          isFavourite(place.placeId)
-                            ? "Remove from favourites"
-                            : "Add to favourites"
-                        }
-                      >
-                        {isFavourite(place.placeId) ? "❤️" : "🩶"}
-                      </button>
+                        </div>
+                        
+                        {/* Actions */}
+                        <div className="flex flex-col gap-1">
+                          {/* Favourite button */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (isFavourite(place.placeId)) {
+                                onRemoveFromFavourites(place);
+                              } else {
+                                onAddToFavourites(place);
+                              }
+                            }}
+                            className={`p-2 rounded transition-colors ${
+                              isFavourite(place.placeId)
+                                ? "text-yellow-600 hover:bg-yellow-200"
+                                : "text-gray-600 hover:bg-gray-200"
+                            }`}
+                            title={
+                              isFavourite(place.placeId)
+                                ? "Remove from favourites"
+                                : "Add to favourites"
+                            }
+                          >
+                            {isFavourite(place.placeId) ? "❤️" : "🤍"}
+                          </button>
 
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onAddPlaceToRoute(place);
-                        }}
-                        className="p-2 hover:bg-green-100 rounded text-green-600"
-                        title="Add to route"
-                      >
-                        ➕
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (
-                            confirm(
-                              `Remove "${place.displayName}" from saved places?`
-                            )
-                          ) {
-                            onRemovePlace(place);
-                          }
-                        }}
-                        className="p-2 hover:bg-red-100 rounded text-red-600"
-                        title="Remove from list"
-                      >
-                        🗑️
-                      </button>
+                          {/* Add to route button */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onAddPlaceToRoute(place);
+                            }}
+                            className="p-2 hover:bg-green-100 rounded text-green-600"
+                            title="Add to route"
+                          >
+                            ➕
+                          </button>
+                          
+                          {/* Removed the delete button from here */}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

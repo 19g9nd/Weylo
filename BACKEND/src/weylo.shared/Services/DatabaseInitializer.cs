@@ -23,6 +23,8 @@ namespace weylo.shared.Services
                 _logger.LogInformation("✅ Connected to database");
 
                 await InitializeCategoriesAsync();
+                await InitializeFilterAttributesAsync(); // 🆕 NEW
+                await InitializeCategoryFiltersAsync(); // 🆕 NEW
                 await InitializeSuperAdminAsync();
             }
             catch (Exception ex)
@@ -38,69 +40,68 @@ namespace weylo.shared.Services
 
             var defaultCategories = new[]
             {
-                new { 
-                    Name = "Restaurants & Dining", 
+                new {
+                    Name = "Restaurants & Dining",
                     Description = "Places to eat and drink including restaurants, cafes, bars",
-                    GoogleTypes = "restaurant,cafe,bar,bakery,food,meal_takeaway,meal_delivery,fast_food_restaurant,ice_cream_shop,pizza_restaurant,sandwich_shop", 
-                    Priority = 10, 
-                    Icon = "utensils" 
+                    GoogleTypes = "restaurant,cafe,bar,bakery,food,meal_takeaway,meal_delivery,fast_food_restaurant,ice_cream_shop,pizza_restaurant,sandwich_shop",
+                    Priority = 10,
+                    Icon = "utensils"
                 },
-                new { 
-                    Name = "Hotels & Lodging", 
+                new {
+                    Name = "Hotels & Lodging",
                     Description = "Accommodation options including hotels, hostels, resorts",
-                    GoogleTypes = "lodging,hotel,resort_hotel,hostel,motel,guest_house,bed_and_breakfast,campground,rv_park", 
-                    Priority = 9, 
-                    Icon = "bed" 
+                    GoogleTypes = "lodging,hotel,resort_hotel,hostel,motel,guest_house,bed_and_breakfast,campground,rv_park",
+                    Priority = 9,
+                    Icon = "bed"
                 },
-                new { 
-                    Name = "Historical Sites", 
+                new {
+                    Name = "Historical Sites",
                     Description = "Historical landmarks, monuments, religious buildings",
-                    GoogleTypes = "church,mosque,synagogue,hindu_temple,buddhist_temple,place_of_worship,monastery,shrine,memorial,monument,historical_landmark", 
-                    Priority = 10, 
-                    Icon = "monument" 
+                    GoogleTypes = "church,mosque,synagogue,hindu_temple,buddhist_temple,place_of_worship,monastery,shrine,memorial,monument,historical_landmark",
+                    Priority = 10,
+                    Icon = "monument"
                 },
-                new { 
-                    Name = "Museums & Culture", 
+                new {
+                    Name = "Museums & Culture",
                     Description = "Museums, galleries, cultural centers and performing arts",
-                    GoogleTypes = "museum,art_gallery,cultural_center,library,performing_arts_theater,concert_hall", 
-                    Priority = 9, 
-                    Icon = "landmark" 
+                    GoogleTypes = "museum,art_gallery,cultural_center,library,performing_arts_theater,concert_hall",
+                    Priority = 9,
+                    Icon = "landmark"
                 },
-                new { 
-                    Name = "Nature & Parks", 
+                new {
+                    Name = "Nature & Parks",
                     Description = "Parks, gardens, natural attractions and outdoor spaces",
-                    GoogleTypes = "park,national_park,natural_feature,hiking_area,nature_reserve,beach,mountain,lake,forest,garden,botanical_garden", 
-                    Priority = 8, 
-                    Icon = "tree" 
+                    GoogleTypes = "park,national_park,natural_feature,hiking_area,nature_reserve,beach,mountain,lake,forest,garden,botanical_garden",
+                    Priority = 8,
+                    Icon = "tree"
                 },
-                new { 
-                    Name = "Tourist Attractions", 
+                new {
+                    Name = "Tourist Attractions",
                     Description = "Popular tourist destinations and entertainment venues",
-                    GoogleTypes = "tourist_attraction,amusement_park,aquarium,zoo,landmark,observation_deck,planetarium", 
-                    Priority = 8, 
-                    Icon = "camera" 
+                    GoogleTypes = "tourist_attraction,amusement_park,aquarium,zoo,landmark,observation_deck,planetarium",
+                    Priority = 8,
+                    Icon = "camera"
                 },
-                new { 
-                    Name = "Shopping", 
+                new {
+                    Name = "Shopping",
                     Description = "Shopping centers, stores and retail",
-                    GoogleTypes = "shopping_mall,store,clothing_store,supermarket,convenience_store,department_store,electronics_store", 
-                    Priority = 7, 
-                    Icon = "shopping-bag" 
+                    GoogleTypes = "shopping_mall,store,clothing_store,supermarket,convenience_store,department_store,electronics_store",
+                    Priority = 7,
+                    Icon = "shopping-bag"
                 },
-                new { 
-                    Name = "Entertainment", 
+                new {
+                    Name = "Entertainment",
                     Description = "Entertainment venues including theaters, stadiums, gyms",
-                    GoogleTypes = "movie_theater,bowling_alley,casino,spa,gym,fitness_center,stadium,sports_club,water_park,arcade", 
-                    Priority = 6, 
-                    Icon = "ticket" 
+                    GoogleTypes = "movie_theater,bowling_alley,casino,spa,gym,fitness_center,stadium,sports_club,water_park,arcade",
+                    Priority = 6,
+                    Icon = "ticket"
                 },
-                new { 
-                    Name = "General", 
+                new {
+                    Name = "General",
                     Description = "General places of interest",
-                    // ⚠️ ВАЖНО: Только супер-общие типы с НИЗКИМ приоритетом
                     GoogleTypes = "",
-                    Priority = 1, 
-                    Icon = "map-pin" 
+                    Priority = 1,
+                    Icon = "map-pin"
                 }
             };
 
@@ -158,6 +159,138 @@ namespace weylo.shared.Services
 
             await _context.SaveChangesAsync();
             _logger.LogInformation("✅ Categories initialized/updated");
+        }
+
+        private async Task InitializeFilterAttributesAsync()
+        {
+            var filterAttributeSet = _context.Set<FilterAttribute>();
+            var existingAttributes = await filterAttributeSet.ToListAsync();
+
+            var defaultFilters = new[]
+            {
+        new { Name = "rating", DisplayName = "Rating", DataType = "number" },
+        new { Name = "price_level", DisplayName = "Price Level", DataType = "number" },
+        new { Name = "subcategories", DisplayName = "Cuisine & Type", DataType = "multi_select" },
+        new { Name = "opening_hours", DisplayName = "Opening Hours", DataType = "string" },
+        new { Name = "phone", DisplayName = "Phone", DataType = "string" },
+        new { Name = "website", DisplayName = "Website", DataType = "string" },
+        new { Name = "wheelchair_accessible", DisplayName = "Wheelchair Accessible", DataType = "boolean" },
+        new { Name = "takeout", DisplayName = "Takeout", DataType = "boolean" },
+        new { Name = "delivery", DisplayName = "Delivery", DataType = "boolean" },
+        new { Name = "dine_in", DisplayName = "Dine-in", DataType = "boolean" },
+        new { Name = "reservable", DisplayName = "Reservations", DataType = "boolean" },
+        new { Name = "serves_beer", DisplayName = "Serves Beer", DataType = "boolean" },
+        new { Name = "serves_wine", DisplayName = "Serves Wine", DataType = "boolean" },
+        new { Name = "serves_vegetarian", DisplayName = "Vegetarian Options", DataType = "boolean" },
+        new { Name = "free_wifi", DisplayName = "Free WiFi", DataType = "boolean" },
+        new { Name = "parking", DisplayName = "Parking", DataType = "boolean" }
+    };
+
+            foreach (var filterDef in defaultFilters)
+            {
+                var existing = existingAttributes.FirstOrDefault(f => f.Name == filterDef.Name);
+                if (existing == null)
+                {
+                    var filter = new FilterAttribute
+                    {
+                        Name = filterDef.Name,
+                        DisplayName = filterDef.DisplayName,
+                        DataType = filterDef.DataType
+                    };
+                    await filterAttributeSet.AddAsync(filter);
+                    _logger.LogInformation("➕ Created filter attribute: {Name}", filterDef.DisplayName);
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("✅ Filter attributes initialized");
+        }
+
+        private async Task InitializeCategoryFiltersAsync()
+        {
+            var categoryFilterSet = _context.Set<CategoryFilter>();
+            var categories = await _context.Set<Category>().ToListAsync();
+            var filterAttributes = await _context.Set<FilterAttribute>().ToListAsync();
+
+            var categoryFilterMappings = new Dictionary<string, string[]>
+            {
+                ["Restaurants & Dining"] = new[]
+                {
+                    "rating", "price_level", "subcategories", "opening_hours",
+                    "phone", "website", "wheelchair_accessible", "takeout",
+                    "delivery", "dine_in", "reservable", "serves_beer",
+                    "serves_wine", "serves_vegetarian"
+                },
+                ["Hotels & Lodging"] = new[]
+                {
+                    "rating", "price_level", "opening_hours", "phone",
+                    "website", "wheelchair_accessible", "free_wifi", "parking"
+                },
+                ["Historical Sites"] = new[]
+                {
+                    "rating", "opening_hours", "phone", "website", "wheelchair_accessible"
+                },
+                ["Museums & Culture"] = new[]
+                {
+                    "rating", "price_level", "opening_hours", "phone",
+                    "website", "wheelchair_accessible"
+                },
+                ["Nature & Parks"] = new[]
+                {
+                    "rating", "opening_hours", "wheelchair_accessible"
+                },
+                ["Tourist Attractions"] = new[]
+                {
+                    "rating", "price_level", "opening_hours", "phone",
+                    "website", "wheelchair_accessible"
+                },
+                ["Shopping"] = new[]
+                {
+                    "rating", "opening_hours", "phone", "website", "wheelchair_accessible"
+                },
+                ["Entertainment"] = new[]
+                {
+                    "rating", "price_level", "opening_hours", "phone",
+                    "website", "wheelchair_accessible", "parking"
+                },
+                ["General"] = new[]
+                {
+                    "rating", "opening_hours", "phone", "website"
+                }
+            };
+
+            int addedCount = 0;
+
+            foreach (var mapping in categoryFilterMappings)
+            {
+                var category = categories.FirstOrDefault(c => c.Name == mapping.Key);
+                if (category == null) continue;
+
+                foreach (var filterName in mapping.Value)
+                {
+                    var filterAttribute = filterAttributes.FirstOrDefault(f => f.Name == filterName);
+                    if (filterAttribute == null) continue;
+
+                    var existing = await categoryFilterSet
+                        .FirstOrDefaultAsync(cf =>
+                            cf.CategoryId == category.Id &&
+                            cf.FilterAttributeId == filterAttribute.Id);
+
+                    if (existing == null)
+                    {
+                        var categoryFilter = new CategoryFilter
+                        {
+                            CategoryId = category.Id,
+                            FilterAttributeId = filterAttribute.Id,
+                        };
+                        await categoryFilterSet.AddAsync(categoryFilter);
+                        addedCount++;
+                    }
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("✅ Category filters initialized ({Count} added)", addedCount);
         }
 
         private async Task InitializeSuperAdminAsync()

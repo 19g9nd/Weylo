@@ -10,9 +10,9 @@ namespace weylo.user.api.Services.Interfaces
         Task<RouteDetailsDto> GetRouteDetailsAsync(int routeId);
         Task<IEnumerable<RouteDto>> GetUserRoutesAsync();
         Task<bool> DeleteRouteAsync(int routeId);
-        Task<bool> RemoveDestinationFromRouteAsync(int routeId, int destinationId);
+        Task<bool> RemoveDestinationFromRouteAsync(int routeId, int routeItemId);
         Task<RouteDto> UpdateRouteAsync(int routeId, UpdateRouteRequest request);
         Task<RouteItemDto> UpdateRouteItemAsync(int routeItemId, UpdateRouteItemRequest request);
-        Task<bool> ReorderRouteDestinationsAsync(int routeId, List<int> destinationOrder);
+        Task<bool> ReorderRouteDestinationsAsync(int routeId, int dayNumber, List<int> destinationOrder);
     }
 }

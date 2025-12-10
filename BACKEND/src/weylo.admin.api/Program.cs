@@ -12,6 +12,7 @@ using weylo.admin.api.Data;
 using weylo.admin.api.Services.Interfaces;
 using weylo.admin.api.Services;
 using weylo.admin.api.Middleware;
+using weylo.shared.Converters;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -134,7 +135,6 @@ builder.Services.Configure<JwtSettings>(jwtSettingsSection);
 var jwtSettings = jwtSettingsSection.Get<JwtSettings>()
     ?? throw new InvalidOperationException("JWT settings not configured");
 var key = Encoding.ASCII.GetBytes(jwtSettings.Key);
-// Регистрируем JwtSettings и JwtService (как в Admin API)
 builder.Services.AddSingleton(jwtSettings);
 builder.Services.AddScoped<IJwtService, JwtService>();
 Console.WriteLine($"JWT Issuer: {jwtSettings.Issuer}");

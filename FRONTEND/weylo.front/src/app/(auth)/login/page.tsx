@@ -166,17 +166,6 @@ export default function LoginPage() {
               )}
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="text-sm">
-                <Link
-                  href="/forgot-password"
-                  className="text-indigo-600 hover:text-indigo-500 font-medium"
-                >
-                  Forgot your password?
-                </Link>
-              </div>
-            </div>
-
             <button
               type="submit"
               disabled={isSubmitting}
@@ -186,10 +175,7 @@ export default function LoginPage() {
             </button>
           </form>
           <div className="text-center">
-            <Link
-              href="/forgot-password"
-              className="text-sm"
-            >
+            <Link href="/forgot-password" className="text-sm">
               Forgot your password?
             </Link>
           </div>

@@ -31,7 +31,6 @@ export const useFavourites = () => {
         err instanceof Error ? err.message : "Failed to load favourites"
       );
 
-      // Fallback к localStorage через сервис
       try {
         const localFavourites = await localStorageService.getFavourites();
         setFavourites(localFavourites);
@@ -58,7 +57,6 @@ export const useFavourites = () => {
       // Обновляем локальное состояние
       setFavourites((prev) => {
         const updated = [...prev, place];
-        // Сохраняем через сервис
         localStorageService.saveFavourites(updated);
         return updated;
       });

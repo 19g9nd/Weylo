@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-const publicPaths = ["/login", "/register", "/", "/about", "/contact"];
+const publicPaths = ["/login", "/register", "/", "/about", "/contact","forgot-password"];
 
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();

@@ -145,7 +145,7 @@ namespace weylo.user.api.Services
             int categoryId = detectedCategoryId ?? await GetDefaultCategoryIdAsync();
 
             _logger.LogInformation("Final category ID: {CategoryId}", categoryId);
-            
+
             var destinationImg = request.ImageUrl;
             var destination = new Destination
             {
@@ -188,6 +188,146 @@ namespace weylo.user.api.Services
             return _mapper.Map<DestinationDto>(destination);
         }
 
+        public async Task<DestinationDto?> AdminUpdateDestinationAsync(int id, AdminUpdateDestinationRequest request)
+        {
+            var destination = await _context.Destinations
+                .Include(d => d.Category)
+                .Include(d => d.City)
+                    .ThenInclude(c => c.Country)
+                .Include(d => d.FilterValues)
+                    .ThenInclude(fv => fv.FilterAttribute)
+                .FirstOrDefaultAsync(d => d.Id == id);
+
+            if (destination == null)
+                return null;
+
+            // Update only provided fields
+            if (!string.IsNullOrWhiteSpace(request.Name))
+                destination.Name = request.Name;
+
+            if (request.CategoryId.HasValue)
+                destination.CategoryId = request.CategoryId.Value;
+
+            if (request.CachedAddress != null)
+                destination.CachedAddress = request.CachedAddress;
+
+            if (request.CachedDescription != null)
+                destination.CachedDescription = request.CachedDescription;
+
+            if (request.CachedImageUrl != null)
+                destination.CachedImageUrl = request.CachedImageUrl;
+
+            destination.CacheUpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return _mapper.Map<DestinationDto>(destination);
+        }
+
+        public async Task<bool> AdminDeleteDestinationAsync(int id)
+        {
+            var destination = await _context.Destinations
+                .Include(d => d.UserFavourites)
+                .Include(d => d.RouteItems)
+                .FirstOrDefaultAsync(d => d.Id == id);
+
+            if (destination == null)
+                return false;
+
+            // Check if place is used in routes or favourites
+            if (destination.UserFavourites.Any() || destination.RouteItems.Any())
+                return false;
+
+            _context.Destinations.Remove(destination);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<IEnumerable<DestinationDto>> FilterDestinationsAsync(DestinationFilterRequest filter)
+        {
+            var query = _context.Destinations
+                .Include(d => d.Category)
+                .Include(d => d.City)
+                    .ThenInclude(c => c.Country)
+                .Include(d => d.FilterValues)
+                    .ThenInclude(fv => fv.FilterAttribute)
+                .AsQueryable();
+
+            // Filter by category
+            if (filter.CategoryId.HasValue)
+            {
+                query = query.Where(d => d.CategoryId == filter.CategoryId.Value);
+            }
+
+            // Filter by city
+            if (filter.CityId.HasValue)
+            {
+                query = query.Where(d => d.CityId == filter.CityId.Value);
+            }
+
+            // Filter by subcategories
+            if (filter.Subcategories?.Any() == true)
+            {
+                query = query.Where(d =>
+                    d.FilterValues.Any(fv =>
+                        fv.FilterAttribute.Name.ToLower() == "subcategories" &&
+                        filter.Subcategories.Any(sc => fv.Value.Contains(sc))));
+            }
+
+            // Filter by minimum rating
+            if (filter.MinRating.HasValue)
+            {
+                query = query.Where(d =>
+                    d.CachedRating.HasValue && d.CachedRating.Value >= (decimal)filter.MinRating.Value);
+            }
+
+            // Filter by price level
+            if (filter.MaxPriceLevel.HasValue)
+            {
+                query = query.Where(d =>
+                    d.FilterValues.Any(fv =>
+                        fv.FilterAttribute.Name.ToLower() == "price_level" &&
+                        int.Parse(fv.Value) <= filter.MaxPriceLevel.Value));
+            }
+
+            // Filter by amenities
+            if (filter.WheelchairAccessible == true)
+            {
+                query = query.Where(d =>
+                    d.FilterValues.Any(fv =>
+                        fv.FilterAttribute.Name.ToLower() == "wheelchair_accessible" &&
+                        fv.Value.ToLower() == "true"));
+            }
+
+            if (filter.Takeout == true)
+            {
+                query = query.Where(d =>
+                    d.FilterValues.Any(fv =>
+                        fv.FilterAttribute.Name.ToLower() == "takeout" &&
+                        fv.Value.ToLower() == "true"));
+            }
+
+            if (filter.Delivery == true)
+            {
+                query = query.Where(d =>
+                    d.FilterValues.Any(fv =>
+                        fv.FilterAttribute.Name.ToLower() == "delivery" &&
+                        fv.Value.ToLower() == "true"));
+            }
+
+            var destinations = await query
+                .OrderByDescending(d => d.CachedRating)
+                .Take(filter.Take)
+                .ToListAsync();
+
+            _logger.LogInformation(
+                "Filtered destinations: Category={CategoryId}, City={CityId}, Subcategories={Subcategories}, Found={Count}",
+                filter.CategoryId, filter.CityId,
+                filter.Subcategories != null ? string.Join(",", filter.Subcategories) : "none",
+                destinations.Count);
+
+            return _mapper.Map<IEnumerable<DestinationDto>>(destinations);
+        }
 
         // --- Public read/update/delete methods ---
         public async Task<bool> DeleteDestinationAsync(int id)
@@ -232,7 +372,7 @@ namespace weylo.user.api.Services
             return _mapper.Map<DestinationDto>(destination);
         }
 
-        // === ФАВОРИТЫ ===
+        // === FAVOURITES ===
 
         public async Task<UserFavouriteDto> AddToFavouritesAsync(int destinationId)
         {
@@ -293,7 +433,6 @@ namespace weylo.user.api.Services
         {
             var userId = _currentUserService.UserId;
 
-            // ЗАМЕНА: UserDestinations → UserFavourites
             var userFavourite = await _context.UserFavourites
                 .Include(uf => uf.Destination)
                     .ThenInclude(d => d.Category)
@@ -324,7 +463,6 @@ namespace weylo.user.api.Services
                         .ThenInclude(c => c.Country)
                 .Include(uf => uf.Destination)
                     .ThenInclude(d => d.Category)
-                // .Include(uf => uf.RouteItems) - фаворитам не нужно знать о маршрутах
                 .OrderByDescending(uf => uf.SavedAt)
                 .ToListAsync();
 
@@ -333,18 +471,16 @@ namespace weylo.user.api.Services
 
         public async Task<IEnumerable<DestinationDto>> GetPopularDestinationsAsync(int take = 20)
         {
-            var destinations = await _context.Destinations
+            return await _context.Destinations
                 .Include(d => d.City).ThenInclude(c => c.Country)
                 .Include(d => d.Category)
-                .Where(d => d.CachedRating.HasValue)
-                .OrderByDescending(d => d.CachedRating)
-                .ThenByDescending(d => d.UserFavourites.Count)  // ← ВОТ ТАК
+                .OrderByDescending(d =>
+                    d.UserFavourites.Count * 2 + // Favourites matter more
+                    d.RouteItems.Count)
                 .Take(take)
+                .Select(d => _mapper.Map<DestinationDto>(d))
                 .ToListAsync();
-
-            return _mapper.Map<IEnumerable<DestinationDto>>(destinations);
         }
-
 
         public async Task<IEnumerable<DestinationDto>> GetDestinationsByCityAsync(int cityId)
         {
@@ -425,7 +561,7 @@ namespace weylo.user.api.Services
 
         private double CalculateDistance(double lat1, double lon1, double lat2, double lon2)
         {
-            const double R = 6371; // Радиус Земли в километрах
+            const double R = 6371; // earth radius in km
 
             var dLat = (lat2 - lat1) * Math.PI / 180;
             var dLon = (lon2 - lon1) * Math.PI / 180;
@@ -444,9 +580,9 @@ namespace weylo.user.api.Services
         #region Filter Auto-Population
 
         private async Task AutoPopulateFilterValuesAsync(
-           int destinationId,
-           SavePlaceRequest request,
-           bool updateExisting = false)
+      int destinationId,
+      SavePlaceRequest request,
+      bool updateExisting = false)
         {
             var destination = await _context.Destinations
                 .Include(d => d.Category)
@@ -465,7 +601,6 @@ namespace weylo.user.api.Services
                 await _context.SaveChangesAsync();
             }
 
-            // Получаем все фильтры, связанные с категорией этого места
             var categoryFilters = await _context.CategoryFilters
                 .Where(cf => cf.CategoryId == destination.CategoryId)
                 .Include(cf => cf.FilterAttribute)
@@ -484,14 +619,12 @@ namespace weylo.user.api.Services
                 "Auto-populating {FilterCount} filters for destination {DestinationId} in category '{CategoryName}'",
                 categoryFilters.Count, destinationId, destination.Category?.Name);
 
-            // Заполняем значения фильтров на основе данных из Google Places
             int filledCount = 0;
             foreach (var categoryFilter in categoryFilters)
             {
                 var filterAttribute = categoryFilter.FilterAttribute;
                 string? value = null;
 
-                // Маппим данные из Google Places на наши фильтры
                 value = filterAttribute.Name.ToLower() switch
                 {
                     "rating" => request.Rating?.ToString("F1"),
@@ -507,10 +640,12 @@ namespace weylo.user.api.Services
                     "serves_beer" => request.ServesBeer?.ToString().ToLower(),
                     "serves_wine" => request.ServesWine?.ToString().ToLower(),
                     "serves_vegetarian" => request.ServesVegetarian?.ToString().ToLower(),
+
+                    "subcategories" or "google_subcategories" => ExtractSubcategoriesValue(request.GoogleTypes),
+
                     _ => null
                 };
 
-                // Если значение есть - сохраняем
                 if (!string.IsNullOrEmpty(value))
                 {
                     var filterValue = new FilterValue
@@ -534,6 +669,18 @@ namespace weylo.user.api.Services
             _logger.LogInformation(
                 "Successfully populated {FilledCount}/{TotalCount} filters for destination {DestinationId}",
                 filledCount, categoryFilters.Count, destinationId);
+        }
+
+        private string? ExtractSubcategoriesValue(string[]? googleTypes)
+        {
+            if (googleTypes == null || !googleTypes.Any())
+                return null;
+
+            var subcategories = _googlePlacesCategoryMapper.ExtractSubcategories(googleTypes);
+
+            return subcategories.Any()
+                ? string.Join(",", subcategories)
+                : null;
         }
         #endregion
     }

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using weylo.admin.api.Data;
+using weylo.admin.api.DTOS;
 using weylo.admin.api.Services.Interfaces;
 using weylo.shared.Models;
 
@@ -67,7 +68,6 @@ namespace weylo.admin.api.Controllers
                     c.Latitude,
                     c.Longitude,
                     DestinationsCount = c.Destinations.Count,
-                    // Можно добавить иконку самого популярного категории
                     TopCategory = c.Destinations
                         .GroupBy(d => d.Category.Name)
                         .OrderByDescending(g => g.Count())
@@ -79,6 +79,45 @@ namespace weylo.admin.api.Controllers
                 .ToListAsync();
 
             return Ok(cities);
+        }
+
+        [HttpGet("{countryId}/cities/by-name")]
+        public async Task<ActionResult<CityDto>> GetCityByName(
+      int countryId,
+      [FromQuery] string name)
+        {
+            try
+            {
+                var city = await _context.Cities
+                    .Include(c => c.Country)
+                    .FirstOrDefaultAsync(c =>
+                        c.CountryId == countryId &&
+                        c.Name.ToLower().Contains(name.ToLower()));
+
+                if (city == null)
+                    return NotFound(new { error = $"City '{name}' not found in country {countryId}" });
+
+                return Ok(new CityDto
+                {
+                    Id = city.Id,
+                    Name = city.Name,
+                    CountryId = city.CountryId,
+                    Latitude = city.Latitude,
+                    Longitude = city.Longitude,
+                    GooglePlaceId = city.GooglePlaceId,
+                    CreatedAt = city.CreatedAt,
+                    Country = city.Country != null ? new CountryDto
+                    {
+                        Id = city.Country.Id,
+                        Name = city.Country.Name,
+                        Code = city.Country.Code
+                    } : null
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Failed to find city" });
+            }
         }
 
         // GET: api/countries/codes

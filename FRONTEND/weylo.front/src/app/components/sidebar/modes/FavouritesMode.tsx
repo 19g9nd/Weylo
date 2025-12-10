@@ -64,6 +64,13 @@ export const FavouritesMode: React.FC<FavouritesModeProps> = ({
           const primaryCategory = getPrimaryCategory(place);
           const categoryIcon = primaryCategory?.icon || "📍";
           const categoryName = primaryCategory?.name || "Place";
+          
+          // Get image URL from photos array
+          const imageUrl = place.photos?.[0]?.getURI?.() || null;
+          // Get saved date if available
+          const savedDate = place.savedAt ? new Date(place.savedAt) : null;
+          // Get personal notes
+          const personalNotes = place.personalNotes;
 
           return (
             <div
@@ -75,68 +82,153 @@ export const FavouritesMode: React.FC<FavouritesModeProps> = ({
               }`}
               onClick={() => onPlaceSelect(place.placeId)}
             >
-              <div className="flex justify-between items-start gap-2">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs bg-yellow-100 px-1.5 py-0.5 rounded text-yellow-700">
-                      #{index + 1}
-                    </span>
-                    <span className="text-sm">{categoryIcon}</span>
-                    <h4 className="font-medium text-gray-900 truncate">
-                      {place.displayName}
-                    </h4>
+              <div className="flex gap-3">
+                {/* Image Section */}
+                {imageUrl && (
+                  <div className="flex-shrink-0">
+                    <img
+                      src={imageUrl}
+                      alt={place.displayName || "Place image"}
+                      className="w-20 h-20 rounded-lg object-cover"
+                      onError={(e) => {
+                        // Fallback if image fails to load
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
                   </div>
-                  {place.formattedAddress && (
-                    <p className="text-sm text-gray-600 line-clamp-2 mb-2">
-                      {place.formattedAddress}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {place.rating && (
-                      <div className="flex items-center gap-1">
-                        <span>⭐</span>
-                        <span className="text-sm font-medium">
-                          {place.rating}
+                )}
+                
+                {/* Content Section */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs bg-yellow-100 px-1.5 py-0.5 rounded text-yellow-700">
+                          #{index + 1}
                         </span>
-                        {place.userRatingsTotal && (
-                          <span className="text-xs text-gray-500">
-                            ({place.userRatingsTotal})
+                        <span className="text-sm">{categoryIcon}</span>
+                        <h4 className="font-medium text-gray-900 truncate">
+                          {place.displayName}
+                        </h4>
+                      </div>
+                      
+                      {/* Personal Notes (if any) */}
+                      {personalNotes && (
+                        <div className="mb-2 p-2 bg-blue-50 border border-blue-100 rounded">
+                          <p className="text-xs text-blue-800 italic">
+                            💬 "{personalNotes}"
+                          </p>
+                        </div>
+                      )}
+                      
+                      {/* Rating and Category */}
+                      <div className="flex items-center gap-2 flex-wrap mb-2">
+                        {place.rating && (
+                          <div className="flex items-center gap-1">
+                            <span>⭐</span>
+                            <span className="text-sm font-medium">
+                              {place.rating.toFixed(1)}
+                            </span>
+                            {place.userRatingsTotal && (
+                              <span className="text-xs text-gray-500">
+                                ({place.userRatingsTotal.toLocaleString()})
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                          {categoryName}
+                        </span>
+                        
+                        {/* Saved Date */}
+                        {savedDate && (
+                          <span className="text-xs bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded">
+                            📅 {savedDate.toLocaleDateString()}
                           </span>
                         )}
                       </div>
-                    )}
-                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
-                      {categoryName}
-                    </span>
+                      
+                      {/* Address */}
+                      {place.formattedAddress && (
+                        <p className="text-sm text-gray-600 line-clamp-2 mb-2">
+                          {place.formattedAddress}
+                        </p>
+                      )}
+                      
+                      {/* Additional Info */}
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        {place.googleType && (
+                          <span className="truncate">
+                            {place.googleType.split(',')[0].replace(/_/g, ' ')}
+                          </span>
+                        )}
+                        {place.city && (
+                          <span className="flex items-center gap-1">
+                            <span>🏙️</span>
+                            {place.city}
+                          </span>
+                        )}
+                        {place.country && (
+                          <span className="flex items-center gap-1">
+                            <span>🌐</span>
+                            {place.country}
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Types/Tags */}
+                      {place.types && place.types.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {place.types.slice(0, 3).map((type, idx) => (
+                            <span
+                              key={idx}
+                              className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded"
+                            >
+                              {type.replace(/_/g, " ")}
+                            </span>
+                          ))}
+                          {place.types.length > 3 && (
+                            <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">
+                              +{place.types.length - 3} more
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Actions */}
+                    <div className="flex flex-col gap-1">
+                      {/* Add to route button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAddToRoute(place);
+                        }}
+                        className="p-2 hover:bg-green-100 rounded text-green-600"
+                        title="Add to route"
+                      >
+                        ➕
+                      </button>
+                      
+                      {/* Remove from favourites button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (
+                            confirm(
+                              `Remove "${place.displayName}" from favourites?`
+                            )
+                          ) {
+                            onRemoveFromFavourites(place);
+                          }
+                        }}
+                        className="p-2 hover:bg-red-100 rounded text-red-600"
+                        title="Remove from favourites"
+                      >
+                        ❌
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <div className="flex gap-1">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onAddToRoute(place);
-                    }}
-                    className="p-2 hover:bg-green-100 rounded text-green-600"
-                    title="Add to route"
-                  >
-                    ➕
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (
-                        confirm(
-                          `Remove "${place.displayName}" from favourites?`
-                        )
-                      ) {
-                        onRemoveFromFavourites(place);
-                      }
-                    }}
-                    className="p-2 hover:bg-red-100 rounded text-red-600"
-                    title="Remove from favourites"
-                  >
-                    🗑️
-                  </button>
                 </div>
               </div>
             </div>

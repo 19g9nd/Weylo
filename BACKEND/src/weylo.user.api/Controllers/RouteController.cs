@@ -110,7 +110,7 @@ namespace weylo.user.api.Controllers
         }
 
         /// <summary>Add destination to route</summary>
-        [HttpPost("{routeId}/destinations")]
+        [HttpPost("{routeId}/items")]
         public async Task<ActionResult<RouteItemDto>> AddDestinationToRoute(int routeId, [FromBody] AddDestinationToRouteRequest request)
         {
             try
@@ -150,12 +150,16 @@ namespace weylo.user.api.Controllers
         }
 
         /// <summary>Reorder destinations in route</summary>
-        [HttpPut("{routeId}/destinations/reorder")]
+        [HttpPut("{routeId}/items/reorder")]
         public async Task<IActionResult> ReorderDestinations(int routeId, [FromBody] ReorderDestinationsRequest request)
         {
             try
             {
-                var result = await _routeService.ReorderRouteDestinationsAsync(routeId, request.DestinationOrder);
+                var result = await _routeService.ReorderRouteDestinationsAsync(
+                    routeId,
+                    request.DayNumber,
+                    request.DestinationOrder);
+
                 return result
                     ? Ok(new { message = "Destinations reordered successfully" })
                     : BadRequest(new { error = "Failed to reorder destinations" });
@@ -168,19 +172,19 @@ namespace weylo.user.api.Controllers
         }
 
         /// <summary>Remove destination from route</summary>
-        [HttpDelete("{routeId}/destinations/{destinationId}")]
-        public async Task<IActionResult> RemoveDestinationFromRoute(int routeId, int destinationId)
+        [HttpDelete("{routeId}/items/{routeItemId}")]
+        public async Task<IActionResult> RemoveDestinationFromRoute(int routeId, int routeItemId)
         {
             try
             {
-                var result = await _routeService.RemoveDestinationFromRouteAsync(routeId, destinationId);
+                var result = await _routeService.RemoveDestinationFromRouteAsync(routeId, routeItemId);
                 return result
                     ? Ok(new { message = "Destination removed from route successfully" })
-                    : NotFound(new { error = "Destination or route not found" });
+                    : NotFound(new { error = "Route item not found" });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error removing destination {DestinationId} from route {RouteId}", destinationId, routeId);
+                _logger.LogError(ex, "Error removing route item {RouteItemId} from route {RouteId}", routeItemId, routeId);
                 return StatusCode(500, new { error = "Internal server error" });
             }
         }

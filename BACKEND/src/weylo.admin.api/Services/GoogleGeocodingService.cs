@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using weylo.admin.api.DTOS;
 using weylo.admin.api.Services.Interfaces;
 
 namespace weylo.admin.api.Services
@@ -113,6 +114,161 @@ namespace weylo.admin.api.Services
             {
                 _logger.LogWarning(ex, "[GoogleGeocodingService] Error checking country support for {CountryCode}", countryCode);
                 return false;
+            }
+        }
+        public async Task<CityGeocodingResult?> GetCityDetailsByNameAsync(string cityName)
+        {
+            if (string.IsNullOrWhiteSpace(cityName))
+                throw new ArgumentException("City name cannot be empty", nameof(cityName));
+
+            try
+            {
+                _logger.LogInformation("[GoogleGeocodingService] Fetching city details for: {CityName}", cityName);
+
+                var url = $"{_baseUrl}?address={Uri.EscapeDataString(cityName)}&key={_apiKey}";
+                var response = await _httpClient.GetAsync(url);
+                response.EnsureSuccessStatusCode();
+
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                _logger.LogDebug("[GoogleGeocodingService] Raw API response: {Response}", jsonContent);
+
+                var geoResponse = JsonSerializer.Deserialize<GoogleGeocodingResponse>(jsonContent,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                if (geoResponse?.Status != "OK" || geoResponse.Results?.Count == 0)
+                {
+                    _logger.LogWarning("[GoogleGeocodingService] No results for city: {CityName}", cityName);
+                    return null;
+                }
+
+                var result = geoResponse.Results.First();
+
+                // Extract city (locality)
+                var cityComponent = result.AddressComponents?
+                    .FirstOrDefault(ac => ac.Types != null && ac.Types.Contains("locality"));
+
+                if (cityComponent == null)
+                {
+                    _logger.LogWarning("[GoogleGeocodingService] Could not find city component for: {CityName}", cityName);
+                    return null;
+                }
+
+                // Extract country
+                var countryComponent = result.AddressComponents?
+                    .FirstOrDefault(ac => ac.Types != null && ac.Types.Contains("country"));
+
+                if (countryComponent == null)
+                {
+                    _logger.LogWarning("[GoogleGeocodingService] Could not find country component");
+                    return null;
+                }
+
+                var cityLocation = result.Geometry?.Location;
+                if (cityLocation == null)
+                {
+                    _logger.LogWarning("[GoogleGeocodingService] No location data for city");
+                    return null;
+                }
+
+                var detectedCityName = cityComponent.LongName;
+                var countryName = countryComponent.LongName;
+                var countryCode = countryComponent.ShortName;
+
+                _logger.LogInformation("[GoogleGeocodingService] City detected: {CityName}, {CountryName} ({CountryCode})",
+                    detectedCityName, countryName, countryCode);
+
+                return new CityGeocodingResult
+                {
+                    PlaceId = result.PlaceId,
+                    CityName = detectedCityName,
+                    CountryName = countryName,
+                    CountryCode = countryCode,
+                    Latitude = cityLocation.Lat,
+                    Longitude = cityLocation.Lng,
+                    FormattedAddress = result.FormattedAddress
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[GoogleGeocodingService] Error fetching city details for {CityName}", cityName);
+                return null;
+            }
+        }
+        public async Task<CityGeocodingResult?> GetCityDetailsAsync(double latitude, double longitude)
+        {
+            try
+            {
+                _logger.LogInformation("[GoogleGeocodingService] Reverse geocoding for coordinates: {Lat}, {Lng}",
+                    latitude, longitude);
+
+                var url = $"{_baseUrl}?latlng={latitude},{longitude}&key={_apiKey}&result_type=locality";
+                var response = await _httpClient.GetAsync(url);
+                response.EnsureSuccessStatusCode();
+
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                _logger.LogDebug("[GoogleGeocodingService] Raw API response: {Response}", jsonContent);
+
+                var geoResponse = JsonSerializer.Deserialize<GoogleGeocodingResponse>(jsonContent,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                if (geoResponse?.Status != "OK" || geoResponse.Results?.Count == 0)
+                {
+                    _logger.LogWarning("[GoogleGeocodingService] No results for coordinates: {Lat}, {Lng}",
+                        latitude, longitude);
+                    return null;
+                }
+
+                var result = geoResponse.Results.First();
+
+                // Extract city (locality)
+                var cityComponent = result.AddressComponents?
+                    .FirstOrDefault(ac => ac.Types != null && ac.Types.Contains("locality"));
+
+                if (cityComponent == null)
+                {
+                    _logger.LogWarning("[GoogleGeocodingService] Could not find city component for coordinates");
+                    return null;
+                }
+
+                // Extract country
+                var countryComponent = result.AddressComponents?
+                    .FirstOrDefault(ac => ac.Types != null && ac.Types.Contains("country"));
+
+                if (countryComponent == null)
+                {
+                    _logger.LogWarning("[GoogleGeocodingService] Could not find country component");
+                    return null;
+                }
+
+                var cityLocation = result.Geometry?.Location;
+                if (cityLocation == null)
+                {
+                    _logger.LogWarning("[GoogleGeocodingService] No location data for city");
+                    return null;
+                }
+
+                var cityName = cityComponent.LongName;
+                var countryName = countryComponent.LongName;
+                var countryCode = countryComponent.ShortName;
+
+                _logger.LogInformation("[GoogleGeocodingService] City detected: {CityName}, {CountryName} ({CountryCode})",
+                    cityName, countryName, countryCode);
+
+                return new CityGeocodingResult
+                {
+                    PlaceId = result.PlaceId,
+                    CityName = cityName,
+                    CountryName = countryName,
+                    CountryCode = countryCode,
+                    Latitude = cityLocation.Lat,
+                    Longitude = cityLocation.Lng,
+                    FormattedAddress = result.FormattedAddress
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[GoogleGeocodingService] Error detecting city for coordinates");
+                return null;
             }
         }
     }

@@ -5,7 +5,7 @@ namespace weylo.user.api.Services.Interfaces
 {
     public interface IDestinationService
     {
-        // Каталог мест
+        // Catalogue
         Task<DestinationDto?> GetDestinationAsync(int id);
         Task<IEnumerable<DestinationDto>> GetDestinationsAsync();
         Task<DestinationDto> SavePlaceAsync(SavePlaceRequest request);
@@ -13,8 +13,12 @@ namespace weylo.user.api.Services.Interfaces
         Task<IEnumerable<DestinationDto>> SearchDestinationsAsync(string query);
         Task<IEnumerable<DestinationDto>> GetDestinationsByCityAsync(int cityId);
         Task<IEnumerable<DestinationDto>> GetPopularDestinationsAsync(int take = 20);
+        Task<IEnumerable<DestinationDto>> FilterDestinationsAsync(DestinationFilterRequest filter);
+        // Admin-only methods
+        Task<DestinationDto?> AdminUpdateDestinationAsync(int id, AdminUpdateDestinationRequest request);
+        Task<bool> AdminDeleteDestinationAsync(int id);
 
-        // Фавориты пользователя
+        //Favourites
         Task<IEnumerable<UserFavouriteDto>> GetUserFavouritesAsync();
         Task<UserFavouriteDto> AddToFavouritesAsync(int destinationId);
         Task<bool> RemoveFromFavouritesAsync(int destinationId);

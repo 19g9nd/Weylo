@@ -8,7 +8,7 @@ namespace weylo.user.api.DTOS
         public int DayNumber { get; set; }
         public int OrderInDay { get; set; }
         public string? UserNotes { get; set; }
-        public DateTime? PlannedTime { get; set; }
+        public TimeOnly? PlannedTime { get; set; } // Will serialize as "14:00:00"
         public bool IsVisited { get; set; }
         public DestinationDto Destination { get; set; } = null!;
     }

@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using weylo.admin.api.Data;
+using weylo.admin.api.DTOS;
+using weylo.admin.api.Services.Interfaces;
 using weylo.shared.Models;
 
 namespace weylo.admin.api.Controllers
@@ -10,10 +12,11 @@ namespace weylo.admin.api.Controllers
     public class CitiesController : ControllerBase
     {
         private readonly AdminDbContext _context;
-
-        public CitiesController(AdminDbContext context)
+        private readonly IGoogleGeocodingService _geocodingService;
+        public CitiesController(AdminDbContext context, IGoogleGeocodingService geocodingService)
         {
             _context = context;
+            _geocodingService = geocodingService;
         }
 
         // GET: api/admin/cities
@@ -35,7 +38,7 @@ namespace weylo.admin.api.Controllers
                     CountryCode = c.Country.Code,
                     c.GooglePlaceId,
                     c.CreatedAt,
-                    DestinationsCount = _context.Destinations.Count(d => d.CityId == c.Id) // Добавили подсчет destinations
+                    DestinationsCount = _context.Destinations.Count(d => d.CityId == c.Id)
                 })
                 .ToListAsync();
 
@@ -71,7 +74,212 @@ namespace weylo.admin.api.Controllers
                 DestinationsCount = destinationsCount
             };
         }
+        
+        [HttpPost("fetch-details")]
+        public async Task<ActionResult> FetchCityDetails([FromBody] FetchCityDetailsRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.CityName))
+            {
+                return BadRequest(new { Message = "City name is required" });
+            }
 
+            try
+            {
+
+                // Get city details from Google
+                var cityDetails = await _geocodingService.GetCityDetailsByNameAsync(request.CityName);
+
+                if (cityDetails == null)
+                {
+                    return NotFound(new { Message = $"Could not find city '{request.CityName}' in Google Geocoding API" });
+                }
+
+                // Check if country is supported
+                var country = await _context.Countries
+                    .FirstOrDefaultAsync(c => c.Code.ToUpper() == cityDetails.CountryCode.ToUpper());
+
+                if (country == null)
+                {
+                    return BadRequest(new
+                    {
+                        Message = $"Country '{cityDetails.CountryName}' ({cityDetails.CountryCode}) is not supported",
+                        CityDetails = new
+                        {
+                            cityDetails.CityName,
+                            cityDetails.CountryName,
+                            cityDetails.CountryCode,
+                            cityDetails.Latitude,
+                            cityDetails.Longitude,
+                            cityDetails.PlaceId
+                        },
+                        CountryNotSupported = true
+                    });
+                }
+
+                // Check if city already exists
+                var existingCity = await FindExistingCityAsync(
+                    cityDetails.CityName,
+                    cityDetails.Latitude,
+                    cityDetails.Longitude,
+                    country.Id
+                );
+
+                if (existingCity != null)
+                {
+                    return Ok(new
+                    {
+                        Message = "City already exists",
+                        CityExists = true,
+                        ExistingCity = new
+                        {
+                            existingCity.Id,
+                            existingCity.Name,
+                            existingCity.Latitude,
+                            existingCity.Longitude,
+                            existingCity.CountryId,
+                            CountryName = country.Name,
+                            CountryCode = country.Code
+                        }
+                    });
+                }
+
+                // Return detected details for confirmation
+                return Ok(new
+                {
+                    Message = "City details fetched successfully",
+                    CityExists = false,
+                    CityDetails = new
+                    {
+                        Name = cityDetails.CityName,
+                        Latitude = cityDetails.Latitude,
+                        Longitude = cityDetails.Longitude,
+                        CountryId = country.Id,
+                        CountryName = country.Name,
+                        CountryCode = country.Code,
+                        GooglePlaceId = cityDetails.PlaceId,
+                        FormattedAddress = cityDetails.FormattedAddress
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Error fetching city details", Error = ex.Message });
+            }
+        }
+        [HttpPost("auto-detect")]
+        public async Task<ActionResult> AutoDetectAndCreateCity([FromBody] AutoDetectCityRequest request)
+        {
+            try
+            {
+
+                // Use the geocoding service to detect city
+                var cityDetails = await _geocodingService.GetCityDetailsAsync(request.Latitude, request.Longitude);
+
+                if (cityDetails == null)
+                {
+                    return BadRequest(new { Message = "Could not detect city from coordinates" });
+                }
+
+                // Check if country exists
+                var country = await _context.Countries
+                    .FirstOrDefaultAsync(c => c.Code.ToUpper() == cityDetails.CountryCode.ToUpper());
+
+                if (country == null)
+                {
+                    return BadRequest(new
+                    {
+                        Message = $"Country '{cityDetails.CountryName}' ({cityDetails.CountryCode}) is not supported",
+                        DetectedCity = cityDetails.CityName,
+                        DetectedCountry = cityDetails.CountryName,
+                        CountryCode = cityDetails.CountryCode,
+                        SuggestCountryCreation = true
+                    });
+                }
+
+                // Check if city already exists
+                var existingCity = await FindExistingCityAsync(
+                    cityDetails.CityName,
+                    cityDetails.Latitude,
+                    cityDetails.Longitude,
+                    country.Id
+                );
+
+                if (existingCity != null)
+                {
+
+                    return Ok(new
+                    {
+                        Message = "City already exists",
+                        CityExists = true,
+                        City = new
+                        {
+                            existingCity.Id,
+                            existingCity.Name,
+                            existingCity.Latitude,
+                            existingCity.Longitude,
+                            existingCity.CountryId,
+                            CountryName = country.Name,
+                            CountryCode = country.Code
+                        }
+                    });
+                }
+
+                // Create new city if auto-create is enabled
+                if (!request.AutoCreate)
+                {
+                    return Ok(new
+                    {
+                        Message = "City detected but not created (auto-create disabled)",
+                        CityExists = false,
+                        DetectedCity = new
+                        {
+                            Name = cityDetails.CityName,
+                            Latitude = cityDetails.Latitude,
+                            Longitude = cityDetails.Longitude,
+                            CountryId = country.Id,
+                            CountryName = country.Name,
+                            CountryCode = country.Code,
+                            GooglePlaceId = cityDetails.PlaceId
+                        }
+                    });
+                }
+
+                var newCity = new City
+                {
+                    Name = NormalizeCityName(cityDetails.CityName),
+                    Latitude = cityDetails.Latitude,
+                    Longitude = cityDetails.Longitude,
+                    CountryId = country.Id,
+                    GooglePlaceId = cityDetails.PlaceId,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.Cities.Add(newCity);
+                await _context.SaveChangesAsync();
+
+                return CreatedAtAction(nameof(GetCity), new { id = newCity.Id }, new
+                {
+                    Message = "City auto-detected and created successfully",
+                    CityExists = false,
+                    AutoCreated = true,
+                    City = new
+                    {
+                        newCity.Id,
+                        newCity.Name,
+                        newCity.Latitude,
+                        newCity.Longitude,
+                        newCity.CountryId,
+                        CountryName = country.Name,
+                        CountryCode = country.Code,
+                        newCity.GooglePlaceId
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Error auto-detecting city", Error = ex.Message });
+            }
+        }
         [HttpGet("{cityId}/map-data")]
         public async Task<IActionResult> GetCityMapData(int cityId)
         {
@@ -224,7 +432,7 @@ namespace weylo.admin.api.Controllers
 
             if (!await _context.Countries.AnyAsync(c => c.Id == request.CountryId))
             {
-                return BadRequest("Country not found");
+                return BadRequest(new { Message = "Country not found" });
             }
 
             var existingCity = await FindExistingCityAsync(request.Name, request.Latitude, request.Longitude, request.CountryId);
@@ -256,9 +464,23 @@ namespace weylo.admin.api.Controllers
             _context.Cities.Add(city);
             await _context.SaveChangesAsync();
 
+            // FIX: Return the created city with country info
             var createdCity = await _context.Cities
                 .Include(c => c.Country)
-                .FirstOrDefaultAsync(c => c.Id == city.Id);
+                .Where(c => c.Id == city.Id)
+                .Select(c => new
+                {
+                    c.Id,
+                    c.Name,
+                    c.Latitude,
+                    c.Longitude,
+                    c.CountryId,
+                    CountryName = c.Country.Name,
+                    CountryCode = c.Country.Code,
+                    c.GooglePlaceId,
+                    c.CreatedAt
+                })
+                .FirstOrDefaultAsync();
 
             return CreatedAtAction(nameof(GetCity), new { id = city.Id }, createdCity);
         }
@@ -280,24 +502,8 @@ namespace weylo.admin.api.Controllers
 
             if (!await _context.Countries.AnyAsync(c => c.Id == request.CountryId))
             {
-                return BadRequest("Country not found");
+                return BadRequest(new { Message = "Country not found" });
             }
-
-            // var existingCity = await FindExistingCityAsync(request.Name, request.Latitude, request.Longitude, request.CountryId, id);
-            // if (existingCity != null)
-            // {
-            //     return Conflict(new
-            //     {
-            //         Message = "Another city with similar data already exists",
-            //         ExistingCity = new
-            //         {
-            //             existingCity.Id,
-            //             existingCity.Name,
-            //             existingCity.Latitude,
-            //             existingCity.Longitude
-            //         }
-            //     });
-            // }
 
             city.Name = NormalizeCityName(request.Name);
             city.Latitude = request.Latitude;
@@ -435,17 +641,23 @@ namespace weylo.admin.api.Controllers
             return EARTH_RADIUS_KM * c;
         }
 
+        // FIX: Load all cities to memory first, then process client-side
         private async Task<int> MergeDuplicateCitiesAsync()
         {
-            var duplicates = await _context.Cities
+            // Load all cities into memory
+            var allCities = await _context.Cities
                 .Include(c => c.Country)
+                .ToListAsync();
+
+            // Group by normalized name in memory (client-side)
+            var duplicates = allCities
                 .GroupBy(c => new
                 {
                     c.CountryId,
                     NormalizedName = NormalizeCityName(c.Name)
                 })
                 .Where(g => g.Count() > 1)
-                .ToListAsync();
+                .ToList();
 
             var mergedCount = 0;
 
@@ -455,7 +667,7 @@ namespace weylo.admin.api.Controllers
                 var primaryCity = cities.First();
                 var duplicateIds = cities.Skip(1).Select(c => c.Id).ToList();
 
-                // IMPORTANT: UPDATE Destinations BEFORE CITIES DELETE
+                // Update destinations to point to primary city
                 var destinationsToUpdate = await _context.Destinations
                     .Where(d => duplicateIds.Contains(d.CityId))
                     .ToListAsync();
@@ -465,7 +677,7 @@ namespace weylo.admin.api.Controllers
                     destination.CityId = primaryCity.Id;
                 }
 
-                // Delete city duplicates
+                // Delete duplicate cities
                 foreach (var duplicateCity in cities.Skip(1))
                 {
                     _context.Cities.Remove(duplicateCity);
@@ -487,8 +699,8 @@ namespace weylo.admin.api.Controllers
     public class CreateCityRequest
     {
         public string Name { get; set; } = string.Empty;
-        public double Latitude { get; set; }  // ← decimal → double
-        public double Longitude { get; set; } // ← decimal → double
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
         public int CountryId { get; set; }
         public string GooglePlaceId { get; set; } = string.Empty;
     }
@@ -496,9 +708,21 @@ namespace weylo.admin.api.Controllers
     public class UpdateCityRequest
     {
         public string Name { get; set; } = string.Empty;
-        public double Latitude { get; set; }  // ← decimal → double
-        public double Longitude { get; set; } // ← decimal → double
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
         public int CountryId { get; set; }
         public string GooglePlaceId { get; set; } = string.Empty;
+    }
+
+    public class AutoDetectCityRequest
+    {
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+        public bool AutoCreate { get; set; }
+    }
+
+    public class FetchCityDetailsRequest
+    {
+        public string CityName { get; set; } = string.Empty;
     }
 }

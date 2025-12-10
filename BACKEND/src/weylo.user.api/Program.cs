@@ -13,11 +13,29 @@ using weylo.user.api.Mappings;
 using System.Reflection;
 using System.Security.Claims;
 using weylo.user.api.Mappings.Interfaces;
+using weylo.shared.Converters;
+using weylo.shared.Converters.weylo.shared.Converters;
+using Microsoft.AspNetCore.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // --- Controllers + Swagger ---
 builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Add both converters
+        options.JsonSerializerOptions.Converters.Add(new TimeOnlyJsonConverter());
+        options.JsonSerializerOptions.Converters.Add(new NullableTimeOnlyJsonConverter());
+
+        // CRITICAL: Make JSON case-insensitive
+        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+
+        // Don't serialize null values
+        options.JsonSerializerOptions.DefaultIgnoreCondition =
+            System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+    });
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -158,12 +176,24 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy =>
+        policy.RequireRole("Admin"));
+
+    options.AddPolicy("SuperAdminOnly", policy =>
+        policy.RequireRole("SuperAdmin"));
+
+    options.AddPolicy("AdminOrSuperAdmin", policy =>
+        policy.RequireAssertion(context =>
+            context.User.IsInRole("Admin") || context.User.IsInRole("SuperAdmin")));
+});
 // --- App services ---
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IDestinationService, DestinationService>();
 builder.Services.AddScoped<IRouteService, RouteService>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
-builder.Services.AddScoped<IFilterService, FilterService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IGooglePlacesCategoryMapper, GooglePlacesCategoryMapper>();
 builder.Services.AddScoped<DatabaseInitializer>();
 builder.Services.AddHttpContextAccessor();

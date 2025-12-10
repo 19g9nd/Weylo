@@ -8,12 +8,12 @@ using weylo.user.api.Services.Interfaces;
 
 namespace weylo.user.api.Services
 {
-    public class FilterService : IFilterService
+    public class CategoryService : ICategoryService
     {
         private readonly UserDbContext _context;
         private readonly IMapper _mapper;
 
-        public FilterService(UserDbContext context, IMapper mapper)
+        public CategoryService(UserDbContext context, IMapper mapper)
         {
             _context = context;
             _mapper = mapper;
@@ -31,6 +31,60 @@ namespace weylo.user.api.Services
 
             await _context.Categories.AddAsync(category);
             await _context.SaveChangesAsync();
+
+            return _mapper.Map<CategoryDto>(category);
+        }
+
+        public async Task<CategoryDto?> UpdateCategoryAsync(int id, UpdateCategoryRequest request)
+        {
+            var category = await _context.Categories.FindAsync(id);
+
+            if (category == null)
+                return null;
+
+            // Check if name is being changed and if it conflicts with existing category
+            if (!string.IsNullOrEmpty(request.Name) &&
+                request.Name.Trim().ToLower() != category.Name.ToLower())
+            {
+                var nameTaken = await _context.Categories
+                    .AnyAsync(c => c.Id != id &&
+                                  c.Name.ToLower() == request.Name.Trim().ToLower());
+
+                if (nameTaken)
+                    throw new BadHttpRequestException("A category with this name already exists.");
+            }
+
+            // Update properties (partial update)
+            if (!string.IsNullOrEmpty(request.Name))
+                category.Name = request.Name.Trim();
+
+            if (request.Description != null) // Allows setting to null or empty
+                category.Description = string.IsNullOrEmpty(request.Description) ?
+                    null : request.Description;
+
+            if (request.GoogleTypes != null) // Allows setting to null or empty
+                category.GoogleTypes = string.IsNullOrEmpty(request.GoogleTypes) ?
+                    null : request.GoogleTypes;
+
+            if (request.Icon != null) // Allows setting to null or empty
+                category.Icon = string.IsNullOrEmpty(request.Icon) ?
+                    null : request.Icon;
+
+            if (request.DisplayOrder.HasValue)
+                category.Priority = request.DisplayOrder.Value;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // Check if category still exists
+                if (!await _context.Categories.AnyAsync(c => c.Id == id))
+                    return null;
+
+                throw; // Re-throw if it's a concurrency issue
+            }
 
             return _mapper.Map<CategoryDto>(category);
         }
@@ -485,7 +539,7 @@ namespace weylo.user.api.Services
         private IQueryable<Destination> ApplyNumericFilter(IQueryable<Destination> query, FilterCriteria filter, string operation)
         {
             if (!decimal.TryParse(filter.Value, out decimal filterNumber))
-                return query.Where(d => false); 
+                return query.Where(d => false);
 
             return operation switch
             {

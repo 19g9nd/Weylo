@@ -6,5 +6,7 @@ namespace weylo.user.api.Mappings.Interfaces
     {
         Task<int?> DetermineCategoryAsync(string[] googleTypes);
         Task<Category?> GetBestMatchingCategoryAsync(string googlePlaceId);
+        List<string> ExtractSubcategories(string[] googleTypes);
+        string GetSubcategoryDisplayName(string subcategory);
     }
 }

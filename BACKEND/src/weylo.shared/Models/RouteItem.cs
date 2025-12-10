@@ -7,8 +7,8 @@ namespace weylo.shared.Models
         public int DestinationId { get; set; }
         public int DayNumber { get; set; } // day 1, 2, 3...
         public int OrderInDay { get; set; }
-        public string? UserNotes { get; set; } // заметки для маршрута
-        public DateTime? PlannedTime { get; set; }
+        public string? UserNotes { get; set; }
+        public TimeOnly? PlannedTime { get; set; }
         public bool IsVisited { get; set; }
 
         // Navigation properties

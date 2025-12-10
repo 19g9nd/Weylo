@@ -48,7 +48,6 @@ export default function Navigation() {
 
   const navItems = [
     { label: "Destinations", path: "/map", icon: "📍" },
-    { label: "Experiences", path: "/experiences", icon: "🌄" },
     ...(isAuthenticated
       ? [{ label: "Dashboard", path: "/dashboard", icon: "📊" }]
       : []),

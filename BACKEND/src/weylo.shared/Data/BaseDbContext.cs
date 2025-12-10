@@ -109,7 +109,7 @@ namespace weylo.shared.Data
                 entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
                 entity.Property(e => e.GooglePlaceId).HasMaxLength(255).IsRequired();
                 entity.Property(e => e.CachedDescription).HasMaxLength(1000);
-                entity.Property(e => e.CachedImageUrl).HasMaxLength(500);
+                entity.Property(e => e.CachedImageUrl).HasMaxLength(-1);
                 entity.Property(e => e.CachedAddress).HasMaxLength(500);
                 entity.Property(e => e.GoogleType).HasMaxLength(100).HasDefaultValue("general");
                 entity.Property(e => e.CachedRating).HasPrecision(3, 1);

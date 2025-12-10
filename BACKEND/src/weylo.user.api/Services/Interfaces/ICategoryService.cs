@@ -3,7 +3,7 @@ using weylo.user.api.Requests;
 
 namespace weylo.user.api.Services.Interfaces
 {
-    public interface IFilterService
+    public interface ICategoryService
     {
         // Categories
         Task<CategoryDto> CreateCategoryAsync(CreateCategoryRequest request);
@@ -13,6 +13,7 @@ namespace weylo.user.api.Services.Interfaces
         Task<CategoryTransferResult> TransferCategoryDestinationsAsync(int fromCategoryId, int toCategoryId);
         Task<DestinationDto> UpdateDestinationCategoryAsync(int destinationId, int categoryId);
         Task<CategoryDto> GetCategoryWithDestinationsAsync(int id);
+        Task<CategoryDto?> UpdateCategoryAsync(int id, UpdateCategoryRequest request);
         Task<IEnumerable<DestinationDto>> GetDestinationsByCategoryAsync(int categoryId);
 
         // Filter Attributes
