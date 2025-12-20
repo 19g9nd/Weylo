@@ -2,12 +2,12 @@
 
 import React, { createContext, useContext, ReactNode } from "react";
 import { ApiResponse, User } from "../types/shared";
-import adminService from "../services/adminService";
 import {
   countriesService,
   SupportedCountry,
   BulkCreateResult,
 } from "../services/countriesService";
+import adminService from "../services/adminService";
 
 interface AdminContextType {
   // User management

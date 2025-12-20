@@ -113,7 +113,7 @@ export default function Navigation() {
               <button
                 key={item.path}
                 onClick={() => navigateTo(item.path)}
-                className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200 relative group"
+                className="cursor-pointer text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200 relative group"
               >
                 {item.label}
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-200 group-hover:w-full"></span>
@@ -135,7 +135,7 @@ export default function Navigation() {
                     Welcome, {user.username}
                   </span>
                 </div>
-                <YellowButton onClick={handleLogout}>Sign Out</YellowButton>
+                <YellowButton className="cursor-pointer" onClick={handleLogout}>Sign Out</YellowButton>
               </>
             ) : (
               <>
@@ -256,7 +256,7 @@ export default function Navigation() {
             <div className="space-y-2">
               <button
                 onClick={() => navigateTo("/")}
-                className="w-full flex items-center space-x-3 p-3 text-left rounded-lg hover:bg-blue-50 transition-colors duration-200 group"
+                className="w-full cursor-pointer flex items-center space-x-3 p-3 text-left rounded-lg hover:bg-blue-50 transition-colors duration-200 group"
               >
                 <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition-colors">
                   <span className="text-lg">🏠</span>
@@ -268,7 +268,7 @@ export default function Navigation() {
                 <button
                   key={item.path}
                   onClick={() => navigateTo(item.path)}
-                  className="w-full flex items-center space-x-3 p-3 text-left rounded-lg hover:bg-blue-50 transition-colors duration-200 group"
+                  className="w-full flex cursor-pointer items-center space-x-3 p-3 text-left rounded-lg hover:bg-blue-50 transition-colors duration-200 group"
                 >
                   <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition-colors">
                     <span className="text-lg">{item.icon}</span>
@@ -284,7 +284,7 @@ export default function Navigation() {
           {/* Auth Section */}
           <div className="p-6 border-t border-gray-200">
             {isAuthenticated ? (
-              <YellowButton fullWidth onClick={handleLogout}>
+              <YellowButton fullWidth  className="cursor-pointer" onClick={handleLogout}>
                 Sign Out
               </YellowButton>
             ) : (

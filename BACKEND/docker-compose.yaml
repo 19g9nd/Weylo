@@ -81,7 +81,7 @@ services:
         condition: service_started
 
   postgres:
-    image: postgres:latest
+    image: postgres:17.7
     container_name: mypostgres
     env_file:
       - .env
