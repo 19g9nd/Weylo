@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FavouritePlace } from "../types/place";
+import { BasePlace, FavouritePlace } from "../types/place";
 import { favouritesService } from "../services/favouritesService";
 import { localStorageService } from "../services/localStorageService";
 import { useAuth } from "../context/AuthContext";
@@ -45,28 +45,24 @@ export const useFavourites = () => {
     }
   };
 
-  const addToFavourites = async (place: FavouritePlace) => {
+  const addToFavourites = async (place: BasePlace) => {
     try {
       if (!place.backendId) {
         throw new Error("Place is not from catalogue - missing backendId");
       }
 
-      // Добавляем на бекенд
+      // Add to backend
       await favouritesService.addToFavourites(place.backendId);
 
-      // Обновляем локальное состояние
-      setFavourites((prev) => {
-        const updated = [...prev, place];
-        localStorageService.saveFavourites(updated);
-        return updated;
-      });
+      // Reload favourites from backend to get savedAt and userFavouriteId
+      await loadFavourites();
     } catch (err) {
       console.error("Error adding to favourites:", err);
       throw err;
     }
   };
 
-  const removeFromFavourites = async (place: FavouritePlace) => {
+  const removeFromFavourites = async (place: BasePlace) => {
     try {
       if (!place.backendId) {
         throw new Error("Place is not from catalogue - missing backendId");

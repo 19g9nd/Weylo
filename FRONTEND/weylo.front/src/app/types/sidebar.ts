@@ -17,8 +17,8 @@ export interface UnifiedSidebarProps {
   onRemovePlace: (place: BasePlace) => void;
   selectedCountry: SupportedCountry | null;
   favourites: FavouritePlace[];
-  onAddToFavourites: (place: FavouritePlace) => void;
-  onRemoveFromFavourites: (place: FavouritePlace) => void;
+  onAddToFavourites: (place: BasePlace) => void;
+  onRemoveFromFavourites: (place: BasePlace) => void;
 
   activeRoute: Route | null;
   routes: Route[];

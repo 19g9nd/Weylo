@@ -1,5 +1,5 @@
 import { SupportedCountry } from "@/src/app/types/country";
-import { Place } from "@/src/app/types/place";
+import { BasePlace } from "@/src/app/types/place";
 import { matchesRating, getPrimaryCategory } from "@/src/app/utils/filterUtils";
 import { ChevronDown } from "../../ui/chevronDown";
 import { Search } from "../../ui/search";
@@ -7,16 +7,16 @@ import { PLACE_CATEGORIES } from "@/src/app/config/placeCategories";
 
 interface CountryExplorationModeProps {
   selectedCountry: SupportedCountry | null;
-  places: Place[];
-  filteredPlaces: Place[];
+  places: BasePlace[];
+  filteredPlaces: BasePlace[];
   filters: {
     categories: string[];
     rating: number | null;
     searchQuery: string;
   };
   isFavourite: (placeId: string) => boolean;
-  onAddToFavourites: (place: Place) => void;
-  onRemoveFromFavourites: (place: Place) => void;
+  onAddToFavourites: (place: BasePlace) => void;
+  onRemoveFromFavourites: (place: BasePlace) => void;
   setFilters: React.Dispatch<
     React.SetStateAction<{
       categories: string[];
@@ -32,8 +32,8 @@ interface CountryExplorationModeProps {
   toggleCategory: (categoryId: string) => void;
   selectedPlaceId: string | null;
   onPlaceSelect: (placeId: string | null) => void;
-  onAddPlaceToRoute: (place: Place) => void;
-  onRemovePlace: (place: Place) => void;
+  onAddPlaceToRoute: (place: BasePlace) => void;
+  onRemovePlace: (place: BasePlace) => void;
   error: string | null;
 }
 

@@ -7,7 +7,7 @@ import {
   SupportedCountry,
   BulkCreateResult,
 } from "../services/countriesService";
-import adminService from "../services/adminService";
+import adminService from "../services/AdminService";
 
 interface AdminContextType {
   // User management
