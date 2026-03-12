@@ -1,6 +1,6 @@
 import { ApiResponse } from "../types/shared";
 import httpClient from "./httpClient";
-import { CreateRouteRequest, UpdateRouteRequest, UpdateRouteItemRequest, AddPlaceToRouteRequest, ReorderPlacesRequest } from "../types/requests";
+import { CreateRouteRequest, UpdateRouteRequest, UpdateRouteItemRequest, AddPlaceToRouteRequest, ReorderPlacesRequest } from "../types/route";
 import { RouteDetailsDto, RouteDto, RouteItemDto } from "../types/route";
 
 export const routesService = {
